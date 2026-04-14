@@ -1,161 +1,211 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { geminiService } from '@/lib/gemini';
-import { motion, AnimatePresence } from 'motion/react';
-import { CheckCircle2, XCircle, Loader2, ArrowRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
+import { useTestStore } from '@/store/testStore'
+import { motion, AnimatePresence } from 'motion/react'
+import { ArrowRight, ArrowLeft, CheckCircle2, Send, Loader2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
-interface Question {
-  question: string;
-  options: string[];
-  correct_answer_index: number;
-  explanation: string;
-}
+export function TestRunner({ onComplete }: { onComplete: (answers: Record<string, { value: string | string[] | null; text?: string }>) => void }) {
+  const store = useTestStore()
+  const [selectedOption, setSelectedOption] = useState<number | null>(null)
+  const [openText, setOpenText] = useState('')
+  const [isTransitioning, setIsTransitioning] = useState(false)
 
-export function TestRunner({ category, onComplete }: { category: string, onComplete: (score: number) => void }) {
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [currentIdx, setCurrentIdx] = useState(0);
-  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
-  const [isAnswered, setIsAnswered] = useState(false);
-  const [score, setScore] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const { questions, currentIndex, currentQuestion } = store
 
+  // Load stored answer when navigating
   useEffect(() => {
-    const loadQuestions = async () => {
-      try {
-        const data = await geminiService.generateTestQuestions(category, 'Менеджер по маркетингу');
-        setQuestions(data);
-      } catch (error) {
-        console.error('Failed to load questions:', error);
-      } finally {
-        setLoading(false);
+    if (!currentQuestion) return
+    const saved = store.getAnswer(currentQuestion.id)
+    if (saved) {
+      if (currentQuestion.type === 'mcq' && Array.isArray(saved.value)) {
+        setSelectedOption(saved.value[0] as unknown as number)
+      } else if (currentQuestion.type === 'open' && saved.text) {
+        setOpenText(saved.text)
       }
-    };
-    loadQuestions();
-  }, [category]);
-
-  const handleAnswer = (idx: number) => {
-    if (isAnswered) return;
-    setSelectedIdx(idx);
-    setIsAnswered(true);
-    if (idx === questions[currentIdx].correct_answer_index) {
-      setScore(s => s + 1);
-    }
-  };
-
-  const nextQuestion = () => {
-    if (currentIdx + 1 < questions.length) {
-      setCurrentIdx(c => c + 1);
-      setSelectedIdx(null);
-      setIsAnswered(false);
     } else {
-      onComplete(score);
+      setSelectedOption(null)
+      setOpenText('')
     }
-  };
+  }, [currentIndex, currentQuestion])
 
-  if (loading) {
+  const handleSave = () => {
+    if (!currentQuestion) return
+    setIsTransitioning(true)
+
+    if (currentQuestion.type === 'mcq') {
+      if (selectedOption === null) {
+        setIsTransitioning(false)
+        return
+      }
+      store.setAnswer(currentQuestion.id, {
+        value: [selectedOption],
+        text: currentQuestion.options?.[selectedOption]?.text,
+      })
+    } else {
+      store.setAnswer(currentQuestion.id, {
+        value: openText,
+        text: openText,
+      })
+    }
+
+    setTimeout(() => {
+      if (currentIndex < questions.length - 1) {
+        store.nextQuestion()
+      } else {
+        store.completeTest()
+        const allAnswers = store.allAnswers.reduce<Record<string, { value: string | string[] | null; text?: string }>>(
+          (acc, a) => { acc[a.question_id] = { value: a.value, text: a.text }; return acc }, {}
+        )
+        console.log('✅ Test completed! Answers:', allAnswers)
+        onComplete(allAnswers)
+      }
+      setIsTransitioning(false)
+    }, 300)
+  }
+
+  const handlePrev = () => {
+    if (currentIndex > 0) {
+      store.prevQuestion()
+    }
+  }
+
+  if (!currentQuestion || questions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-4">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Генерируем вопросы с помощью ИИ...</p>
+        <p className="text-sm text-muted-foreground">Загрузка вопросов...</p>
       </div>
-    );
+    )
   }
 
-  const q = questions[currentIdx];
-  const progress = ((currentIdx + 1) / questions.length) * 100;
+  const progress = store.progress
+  const q = currentQuestion
+  const isLast = currentIndex === questions.length - 1
 
   return (
     <div className="space-y-6">
+      {/* Progress bar */}
       <div className="space-y-2">
-        <div className="flex justify-between text-xs font-medium">
-          <span>Вопрос {currentIdx + 1} из {questions.length}</span>
-          <span>{Math.round(progress)}%</span>
+        <div className="flex justify-between text-xs font-medium text-muted-foreground">
+          <span>Вопрос {currentIndex + 1} из {questions.length}</span>
+          <span>{Math.round(progress)}% · Отвечено {store.answeredCount}/{questions.length}</span>
         </div>
-        <Progress value={progress} className="h-1" />
+        <Progress value={progress} className="h-2" />
       </div>
 
+      {/* Question card */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={currentIdx}
-          initial={{ opacity: 0, x: 20 }}
+          key={currentIndex}
+          initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          className="space-y-4"
+          exit={{ opacity: 0, x: -30 }}
+          transition={{ duration: 0.25, ease: 'easeInOut' }}
         >
-          <h2 className="text-2xl font-bold leading-tight font-heading">{q.question}</h2>
-          
-          <div className="space-y-3">
-            {q.options.map((option, idx) => {
-              const isCorrect = idx === q.correct_answer_index;
-              const isSelected = idx === selectedIdx;
-              
-              let variant = "outline";
-              if (isAnswered) {
-                if (isCorrect) variant = "default";
-                else if (isSelected) variant = "destructive";
-              }
-
-              return (
-                <Button
-                  key={idx}
-                  variant={variant as any}
-                  className={cn(
-                    "w-full justify-start text-left h-auto py-4 px-4 whitespace-normal transition-all duration-300 rounded-2xl border-2",
-                    isAnswered && isCorrect ? 'bg-green-500 hover:bg-green-500 border-green-500 text-white' : 
-                    isAnswered && isSelected && !isCorrect ? 'bg-red-500/10 border-red-500 text-red-600' :
-                    !isAnswered && isSelected ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
-                  )}
-                  onClick={() => handleAnswer(idx)}
-                  disabled={isAnswered}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={cn(
-                      "w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-bold transition-colors",
-                      isAnswered && isCorrect ? 'border-white text-white' : 
-                      isAnswered && isSelected && !isCorrect ? 'border-red-500 text-red-600' :
-                      'border-muted-foreground/30 text-muted-foreground'
-                    )}>
-                      {String.fromCharCode(65 + idx)}
-                    </div>
-                    <span className="font-medium">{option}</span>
-                  </div>
-                </Button>
-              );
-            })}
-          </div>
-
-          {isAnswered && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`p-4 rounded-xl border ${
-                selectedIdx === q.correct_answer_index ? 'bg-green-500/5 border-green-500/20' : 'bg-red-500/5 border-red-500/20'
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                {selectedIdx === q.correct_answer_index ? (
-                  <CheckCircle2 className="w-4 h-4 text-green-500" />
-                ) : (
-                  <XCircle className="w-4 h-4 text-red-500" />
-                )}
-                <span className="text-sm font-bold">
-                  {selectedIdx === q.correct_answer_index ? 'Верно!' : 'Не совсем так'}
+          <Card>
+            <CardHeader>
+              <div className="flex items-start gap-3">
+                <span className={cn(
+                  'shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-md text-xs font-bold',
+                  q.type === 'mcq' ? 'bg-primary/10 text-primary' : 'bg-secondary text-secondary-foreground'
+                )}>
+                  {q.type === 'mcq' ? 'MCQ' : '✏️'}
                 </span>
+                <CardTitle className="text-lg sm:text-xl leading-snug font-heading">{q.text}</CardTitle>
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                {q.explanation}
-              </p>
-              <Button className="w-full mt-4" onClick={nextQuestion}>
-                {currentIdx + 1 === questions.length ? 'Завершить' : 'Следующий вопрос'}
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </motion.div>
-          )}
+            </CardHeader>
+            <CardContent>
+              {q.type === 'mcq' && q.options && (
+                <div className="space-y-3">
+                  {q.options.map((option, idx) => {
+                    const isSelected = selectedOption === idx
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => setSelectedOption(idx)}
+                        className={cn(
+                          'w-full text-left rounded-xl border-2 p-4 transition-all duration-200',
+                          'hover:border-primary/50 hover:bg-primary/5',
+                          isSelected && 'border-primary bg-primary/10 shadow-sm'
+                        )}
+                      >
+                        <div className="flex items-center gap-4">
+                          <span className={cn(
+                            'h-6 w-6 shrink-0 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-colors',
+                            isSelected
+                              ? 'border-primary bg-primary text-primary-foreground'
+                              : 'border-muted-foreground/30 text-muted-foreground'
+                          )}>
+                            {String.fromCharCode(65 + idx)}
+                          </span>
+                          <span className="font-medium text-sm sm:text-base">{option.text}</span>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
+              {q.type === 'open' && (
+                <textarea
+                  value={openText}
+                  onChange={(e) => setOpenText(e.target.value)}
+                  placeholder="Напишите ваш ответ..."
+                  className={cn(
+                    'w-full min-h-[160px] rounded-xl border bg-background p-4 text-sm',
+                    'resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent',
+                    'placeholder:text-muted-foreground'
+                  )}
+                />
+              )}
+
+              {q.llm_rubric && (
+                <p className="mt-4 text-xs text-muted-foreground italic">
+                  💡 Критерии оценки: {q.llm_rubric}
+                </p>
+              )}
+            </CardContent>
+          </Card>
         </motion.div>
       </AnimatePresence>
+
+      {/* Navigation */}
+      <div className="flex items-center gap-3">
+        <Button
+          variant="outline"
+          onClick={handlePrev}
+          disabled={currentIndex === 0}
+          className="flex-1"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Назад
+        </Button>
+
+        <Button
+          onClick={handleSave}
+          disabled={
+            isTransitioning ||
+            (q.type === 'mcq' && selectedOption === null) ||
+            (q.type === 'open' && openText.trim().length === 0)
+          }
+          className="flex-[2]"
+        >
+          {isLast ? (
+            <>
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              Завершить
+            </>
+          ) : (
+            <>
+              Далее
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </>
+          )}
+        </Button>
+      </div>
     </div>
-  );
+  )
 }

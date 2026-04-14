@@ -6,6 +6,8 @@ export interface Question {
   text: string
   type: 'mcq' | 'open'
   options: { text: string; is_correct: boolean }[] | null
+  llm_rubric: string | null
+  max_score: number
   created_at: string
 }
 
