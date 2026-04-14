@@ -62,7 +62,7 @@ function validateTelegramInitData(initData: string, botToken: string): boolean {
     .map(([key, value]) => `${key}=${value}`)
     .join('\n')
 
-  console.log('[auth] DataCheckString (first 50 chars):', params.substring(0, 50))
+  console.log('[auth] DataCheckString (full):', params)
   console.log('[auth] DataCheckString keys (sorted):', Array.from(urlParams.keys()).sort().join(', '))
 
   // FIX 1: 'WebAppData' — это ключ, botToken — это данные (по спецификации Telegram)
@@ -222,7 +222,8 @@ export default async function handler(req: Request): Promise<Response> {
       return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 })
     }
 
-    const botToken = process.env.TG_BOT_TOKEN?.trim()
+    // Strip ALL non-printable / non-ASCII chars — .trim() misses invisible Unicode
+    const botToken = process.env.TG_BOT_TOKEN?.replace(/[^\x21-\x7E]/g, '')
     const supabaseUrl = process.env.SUPABASE_URL
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -230,6 +231,13 @@ export default async function handler(req: Request): Promise<Response> {
       console.error('[auth] ✗ Missing env vars (redacted)')
       return new Response(JSON.stringify({ error: 'Server configuration error' }), { status: 500 })
     }
+
+    console.log('[auth] BotToken diagnostic:', {
+      rawLen: process.env.TG_BOT_TOKEN?.length,
+      cleanLen: botToken.length,
+      hasInvisible: process.env.TG_BOT_TOKEN?.length !== botToken.length,
+      preview: botToken.slice(0, 6) + '...' + botToken.slice(-4),
+    })
 
     console.log('[auth] ✓ Env vars present')
 
