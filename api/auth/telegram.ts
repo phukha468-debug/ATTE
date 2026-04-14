@@ -14,6 +14,24 @@ export const config = { runtime: 'nodejs' }
 import { createClient } from '@supabase/supabase-js'
 import { createHmac, timingSafeEqual } from 'crypto'
 
+// ─── DB Schema (Law of Truth — synced with BRIEF.md) ────────────────────────
+
+const DB_SCHEMA = {
+  users: {
+    table: 'users',
+    tg_id: 'tg_id',
+    full_name: 'full_name',
+    company_id: 'company_id',
+    role: 'role',
+  },
+  companies: {
+    table: 'companies',
+    name: 'name',
+    size_category: 'size_category',
+    pricing_tier: 'pricing_tier',
+  },
+} as const
+
 // ─── HMAC Validation ───────────────────────────────────────────────────────
 
 function hmacSHA256(key: string, data: string): Buffer {
@@ -53,6 +71,7 @@ async function authUser(
   username: string,
   botToken: string,
 ): Promise<Response> {
+  const { users, companies } = DB_SCHEMA
   console.log(`[auth] → authUser called: tgId=${tgId}, fullName="${fullName}"`)
 
   const email = `tg_${tgId}@atte.local`
@@ -61,9 +80,9 @@ async function authUser(
   // Step 1: Check if profile exists
   console.log('[auth] Step 1: Checking if profile exists in users table...')
   const { data: existingUser, error: selectError } = await supabase
-    .from('users')
+    .from(users.table)
     .select('id, company_id')
-    .eq('tg_id', tgId)
+    .eq(users.tg_id, tgId)
     .single()
 
   if (selectError && selectError.code !== 'PGRST116') {
@@ -82,11 +101,11 @@ async function authUser(
     // Step 2: Create default company
     console.log('[auth] Step 2: Inserting into companies table...')
     const { data: newCompany, error: companyError } = await supabase
-      .from('companies')
+      .from(companies.table)
       .insert({
-        name: `${fullName}'s Workspace`,
-        size_category: 'micro',
-        pricing_tier: 'pending_micro',
+        [companies.name]: `${fullName}'s Workspace`,
+        [companies.size_category]: 'micro',
+        [companies.pricing_tier]: 'pending_micro',
       })
       .select('id')
       .single()
@@ -109,6 +128,7 @@ async function authUser(
         tg_id: tgId,
         full_name: fullName,
         username,
+        role: 'employee',  // default role (lowercase)
       },
     })
 
@@ -126,15 +146,13 @@ async function authUser(
     const userId = authData?.user?.id
 
     if (userId) {
-      console.log('[auth] Step 3b: Inserting user profile into users table...')
-      const { error: profileError } = await supabase.from('users').insert({
+      console.log('[auth] Step 3b: Profile data', { userId, tgId, fullName, companyId })
+      const { error: profileError } = await supabase.from(users.table).insert({
         id: userId,
-        tg_id: tgId,
-        full_name: fullName,
-        job_title: 'Not set',
-        department: 'Not set',
-        grade: 1,
-        company_id: companyId,
+        [users.tg_id]: tgId,
+        [users.full_name]: fullName,
+        [users.role]: 'employee',
+        [users.company_id]: companyId,
       })
 
       if (profileError) {
@@ -192,7 +210,7 @@ export default async function handler(req: Request): Promise<Response> {
 
     console.log('[auth] ✓ Env vars present')
 
-    // ── 2. Body check (guard against missing body) ──────────────────────
+    // ── 2. Body parsing (robust: text() → JSON.parse) ───────────────────
     if (!req.body) {
       console.warn('[auth] ✗ No request body')
       return new Response(JSON.stringify({ error: 'Missing request body' }), { status: 400 })
@@ -200,10 +218,12 @@ export default async function handler(req: Request): Promise<Response> {
 
     let body: { initData?: string }
     try {
-      body = await req.json()
-    } catch {
-      console.warn('[auth] ✗ Invalid JSON body')
-      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400 })
+      const rawBody = await req.text()
+      console.log('[auth] Raw body received (first 100 chars):', rawBody.slice(0, 100))
+      body = JSON.parse(rawBody)
+    } catch (e: any) {
+      console.error('[auth] JSON Parse Error:', e.message)
+      return new Response(JSON.stringify({ error: 'Invalid JSON', detail: e.message }), { status: 400 })
     }
 
     const { initData } = body
