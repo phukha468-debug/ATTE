@@ -52,16 +52,35 @@ export function Layout() {
   const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
+    // 8-second timeout guard to prevent infinite splash screen
+    const authTimer = setTimeout(() => {
+      setAuthState('error')
+      setErrorMessage('Превышено время ожидания авторизации (8 сек)')
+    }, 8000)
+
     async function initAuth() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        console.log('[auth-debug] 1. Starting getSession...')
+        const { data: { session } } = await supabase.auth.getSession()
+        console.log('[auth-debug] 2. Session found:', !!session)
 
         if (!session) {
-          await loginWithTelegram();
+          console.log('[auth-debug] 2b. No session — calling loginWithTelegram...')
+          await loginWithTelegram()
+          console.log('[auth-debug] 2c. loginWithTelegram completed')
         }
 
         // Fetch user profile for role-based routing
-        const profile = await fetchCurrentUserProfile()
+        console.log('[auth-debug] 3. Fetching profile...')
+        let profile = null
+        try {
+          profile = await fetchCurrentUserProfile()
+          console.log('[auth-debug] 3b. Profile result:', profile ? `role=${profile.role}` : 'null')
+        } catch (profileErr: any) {
+          console.error('[auth-debug] 3c. Profile fetch error (non-fatal):', profileErr.message)
+          profile = { role: 'employee' } // fallback — don't block login
+        }
+
         if (profile) {
           setUserRole(profile.role)
 
@@ -71,21 +90,28 @@ export function Layout() {
           const path = location.pathname
 
           if (isManager && path === '/') {
+            console.log('[auth-debug] 4. Redirecting manager to /dashboard')
             navigate('/dashboard', { replace: true })
           } else if (!isManager && path === '/dashboard') {
+            console.log('[auth-debug] 4. Redirecting employee to /tests')
             navigate('/tests', { replace: true })
           }
         }
 
-        setAuthState('ready');
+        console.log('[auth-debug] 5. Setting authState = ready')
+        setAuthState('ready')
       } catch (err: any) {
-        console.error('Auth initialization error:', err);
-        setErrorMessage(err.message || 'Не удалось авторизоваться');
-        setAuthState('error');
+        console.error('[auth-debug] ✗ Auth initialization error:', err)
+        setErrorMessage(err.message || 'Не удалось авторизоваться')
+        setAuthState('error')
+      } finally {
+        clearTimeout(authTimer)
       }
     }
 
-    initAuth();
+    initAuth()
+
+    return () => clearTimeout(authTimer)
   }, []);
 
   if (authState === 'loading') {
