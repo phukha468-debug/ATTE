@@ -22,7 +22,8 @@
       "Bash(git *)",
       "Bash(npm run *)",
       "Bash(npm install)",
-      "Bash(rmdir *)"
+      "Bash(rmdir *)",
+      "Bash(else)"
     ]
   },
   "$version": 3
