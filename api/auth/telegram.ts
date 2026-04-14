@@ -267,6 +267,7 @@ export default async function handler(req: Request): Promise<Response> {
     }
 
     console.log(`[auth] 1. Получили initData (length=${initData.length}, starts_with="${initData.slice(0, 20)}...")`)
+    console.log('[auth] initData (full):', initData)
 
     const supabase = createClient<any, 'public', any>(supabaseUrl, serviceRoleKey)
 
