@@ -39,42 +39,35 @@ function hmacSHA256(key: string, data: string): Buffer {
 }
 
 function validateTelegramInitData(initData: string, botToken: string): boolean {
-  // Sanitize: trim, remove trailing whitespace/newlines, strip JSON wrapping quotes
-  let cleanInitData = initData.trim().replace(/[\r\n]+$/, '')
-  cleanInitData = cleanInitData.replace(/^["']|["']$/g, '')
+  const paramsMap = new Map<string, string>()
 
-  const urlParams = new URLSearchParams(cleanInitData)
+  // Manual parsing — no URLSearchParams magic that can distort values
+  initData.split('&').forEach(pair => {
+    const index = pair.indexOf('=')
+    if (index === -1) return
+    const key = pair.slice(0, index)
+    const val = pair.slice(index + 1)
+    paramsMap.set(key, decodeURIComponent(val))
+  })
 
-  // Support both 'hash' (WebApp) and 'signature' (alternative) keys
-  const hash = urlParams.get('hash') || urlParams.get('signature')
+  const hash = paramsMap.get('hash') || paramsMap.get('signature')
   if (!hash) {
     console.warn('[auth] ✗ No hash or signature in initData')
     return false
   }
 
-  // Remove both keys from params before building data_check_string
-  urlParams.delete('hash')
-  urlParams.delete('signature')
+  paramsMap.delete('hash')
+  paramsMap.delete('signature')
 
-  // Alphabetical sort per Telegram docs: https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
-  const params = Array.from(urlParams.entries())
-    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-    .map(([key, value]) => `${key}=${value}`)
-    .join('\n')
+  const keys = Array.from(paramsMap.keys()).sort()
+  const dataCheckString = keys.map(key => `${key}=${paramsMap.get(key)}`).join('\n')
 
-  console.log('[auth] DataCheckString (full):', params)
-  console.log('[auth] DataCheckString keys (sorted):', Array.from(urlParams.keys()).sort().join(', '))
+  console.log('[auth] DataCheckString keys (sorted):', keys.join(', '))
 
-  // FIX 1: 'WebAppData' — это ключ, botToken — это данные (по спецификации Telegram)
   const secretKey = createHmac('sha256', 'WebAppData').update(botToken).digest()
+  const calculatedHash = createHmac('sha256', secretKey).update(dataCheckString).digest('hex')
 
-  // FIX 2: secretKey передается как Buffer (сырые байты), а не как hex-строка
-  const calculatedHash = createHmac('sha256', secretKey).update(params).digest('hex')
-
-  console.log('[auth] Crypto Debug:', {
-    received: hash.slice(0, 5) + '...',
-    calculated: calculatedHash.slice(0, 5) + '...'
-  })
+  console.log('[auth] Raw Crypto:', { received: hash.slice(0, 5), calculated: calculatedHash.slice(0, 5) })
 
   return calculatedHash === hash
 }
