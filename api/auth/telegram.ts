@@ -63,10 +63,13 @@ function validateTelegramInitData(initData: string, botToken: string): boolean {
   const dataCheckString = keys.map(key => `${key}=${paramsMap.get(key)}`).join('\n')
 
   console.log('[auth] DataCheckString keys (sorted):', keys.join(', '))
+  console.log('[auth] DataCheckString (full):\n' + dataCheckString)
+  console.log('[auth] Hash received (full):', hash)
 
   const secretKey = createHmac('sha256', 'WebAppData').update(botToken).digest()
   const calculatedHash = createHmac('sha256', secretKey).update(dataCheckString).digest('hex')
 
+  console.log('[auth] Hash calculated (full):', calculatedHash)
   console.log('[auth] Raw Crypto:', { received: hash.slice(0, 5), calculated: calculatedHash.slice(0, 5) })
 
   return calculatedHash === hash
@@ -229,6 +232,7 @@ export default async function handler(req: Request): Promise<Response> {
       rawLen: process.env.TG_BOT_TOKEN?.length,
       cleanLen: botToken.length,
       hasInvisible: process.env.TG_BOT_TOKEN?.length !== botToken.length,
+      botId: botToken.split(':')[0],
       preview: botToken.slice(0, 6) + '...' + botToken.slice(-4),
     })
 
