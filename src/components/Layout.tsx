@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { BottomNav } from './BottomNav';
 import { motion, AnimatePresence } from 'motion/react';
 import { loginWithTelegram } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
+import { fetchCurrentUserProfile } from '@/lib/api';
 
 function SplashScreen() {
   return (
@@ -14,7 +15,6 @@ function SplashScreen() {
         transition={{ duration: 0.4 }}
         className="flex flex-col items-center gap-4"
       >
-        {/* Spinner */}
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         <p className="text-sm text-muted-foreground">Вход через Telegram...</p>
       </motion.div>
@@ -45,22 +45,38 @@ function ErrorScreen({ message }: { message: string }) {
 }
 
 export function Layout() {
+  const navigate = useNavigate()
+  const location = useLocation()
   const [authState, setAuthState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState('');
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     async function initAuth() {
       try {
-        // Проверяем, есть ли уже активная сессия
         const { data: { session } } = await supabase.auth.getSession();
 
-        if (session) {
-          setAuthState('ready');
-          return;
+        if (!session) {
+          await loginWithTelegram();
         }
 
-        // Сессии нет — логинимся через Telegram
-        await loginWithTelegram();
+        // Fetch user profile for role-based routing
+        const profile = await fetchCurrentUserProfile()
+        if (profile) {
+          setUserRole(profile.role)
+
+          // Если менеджер/админ зашёл на главную — редирект на дашборд
+          // Если employee пытается зайти на дашборд — редирект на tests
+          const isManager = profile.role === 'manager' || profile.role === 'admin'
+          const path = location.pathname
+
+          if (isManager && path === '/') {
+            navigate('/dashboard', { replace: true })
+          } else if (!isManager && path === '/dashboard') {
+            navigate('/tests', { replace: true })
+          }
+        }
+
         setAuthState('ready');
       } catch (err: any) {
         console.error('Auth initialization error:', err);
@@ -81,7 +97,7 @@ export function Layout() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-24">
+    <div className="min-h-screen bg-background text-foreground pb-24" data-role={userRole || ''}>
       <main className="max-w-md mx-auto px-4 pt-6">
         <AnimatePresence mode="wait">
           <motion.div

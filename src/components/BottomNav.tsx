@@ -1,9 +1,10 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, ClipboardCheck, BarChart3, User, CreditCard } from 'lucide-react';
+import { Home, ClipboardCheck, BarChart3, User, CreditCard, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { fetchCurrentUserProfile } from '@/lib/api';
 
-const navItems = [
+const employeeNavItems = [
   { icon: Home, label: 'Главная', path: '/' },
   { icon: ClipboardCheck, label: 'Тесты', path: '/tests' },
   { icon: BarChart3, label: 'Отчеты', path: '/reports' },
@@ -11,7 +12,23 @@ const navItems = [
   { icon: User, label: 'Профиль', path: '/profile' },
 ];
 
+const managerNavItems = [
+  { icon: Home, label: 'Главная', path: '/' },
+  { icon: Users, label: 'Дашборд', path: '/dashboard' },
+  { icon: ClipboardCheck, label: 'Тесты', path: '/tests' },
+  { icon: CreditCard, label: 'Тарифы', path: '/pricing' },
+  { icon: User, label: 'Профиль', path: '/profile' },
+];
+
 export function BottomNav() {
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchCurrentUserProfile().then(p => setRole(p?.role || null))
+  }, [])
+
+  const navItems = role === 'manager' || role === 'admin' ? managerNavItems : employeeNavItems;
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-lg border-t border-border px-4 py-2 pb-safe z-50">
       <div className="max-w-md mx-auto flex justify-between items-center">

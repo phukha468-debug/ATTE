@@ -66,3 +66,64 @@ export const submitTestResults = async (
 
   return response.json()
 }
+
+export interface TestResult {
+  id: string
+  user_id: string
+  company_id: string | null
+  answers: unknown
+  llm_feedback: {
+    score: number
+    feedback: string
+    category_scores: Record<string, number>
+  } | null
+  score: number | null
+  is_completed: boolean
+  created_at: string
+  users: {
+    full_name: string
+    role: string
+  } | null
+}
+
+/**
+ * Получить результаты аттестации сотрудников компании.
+ * RLS автоматически фильтрует по company_id авторизованного пользователя.
+ */
+export const fetchCompanyResults = async (): Promise<TestResult[]> => {
+  const { data, error } = await supabase
+    .from('test_results')
+    .select('*, users(full_name, role)')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('fetchCompanyResults error:', error)
+    throw new Error(`Failed to fetch results: ${error.message}`)
+  }
+
+  return data || []
+}
+
+/**
+ * Получить профиль текущего пользователя.
+ */
+export const fetchCurrentUserProfile = async () => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return null
+
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+
+  if (error) {
+    console.error('fetchCurrentUserProfile error:', error)
+    return null
+  }
+
+  return data
+}

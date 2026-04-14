@@ -23,7 +23,8 @@
       "Bash(npm run *)",
       "Bash(npm install)",
       "Bash(rmdir *)",
-      "Bash(else)"
+      "Bash(else)",
+      "Bash(npx *)"
     ]
   },
   "$version": 3
