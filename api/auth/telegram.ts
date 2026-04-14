@@ -135,66 +135,79 @@ async function authUser(
 // ─── Handler ───────────────────────────────────────────────────────────────
 
 export default async function handler(req: Request): Promise<Response> {
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 })
-  }
-
-  const botToken = process.env.TG_BOT_TOKEN
-  const supabaseUrl = process.env.SUPABASE_URL
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!botToken || !supabaseUrl || !serviceRoleKey) {
-    return new Response(JSON.stringify({ error: 'Server configuration error' }), { status: 500 })
-  }
-
-  let body: { initData?: string }
   try {
-    body = await req.json()
-  } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400 })
-  }
-
-  const { initData } = body
-  if (!initData || typeof initData !== 'string') {
-    return new Response(JSON.stringify({ error: 'Missing initData' }), { status: 400 })
-  }
-
-  const supabase = createClient(supabaseUrl, serviceRoleKey)
-
-  // ── DEV MODE bypass (STRICT: blocked in production) ──────────────────────
-  if (initData === 'DEV_MODE') {
-    const env = process.env.VERCEL_ENV || process.env.NODE_ENV || ''
-    if (env === 'production') {
-      console.error('[auth/telegram] DEV_MODE rejected in production!')
-      return new Response(JSON.stringify({ error: 'DEV MODE blocked in production' }), { status: 403 })
+    // ── 1. Method check (must come FIRST) ─────────────────────────────────
+    if (req.method !== 'POST') {
+      return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 })
     }
 
-    console.warn('[auth/telegram] DEV MODE: local dev bypass activated')
-    return authUser(supabase, 111222333, 'Local Dev', 'local_dev', botToken)
+    const botToken = process.env.TG_BOT_TOKEN
+    const supabaseUrl = process.env.SUPABASE_URL
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!botToken || !supabaseUrl || !serviceRoleKey) {
+      return new Response(JSON.stringify({ error: 'Server configuration error' }), { status: 500 })
+    }
+
+    let body: { initData?: string }
+    try {
+      body = await req.json()
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400 })
+    }
+
+    const { initData } = body
+    if (!initData || typeof initData !== 'string') {
+      return new Response(JSON.stringify({ error: 'Missing initData' }), { status: 400 })
+    }
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey)
+
+    // ── 2. DEV MODE bypass (STRICT: blocked in production) ───────────────
+    if (initData === 'DEV_MODE') {
+      const env = process.env.VERCEL_ENV || process.env.NODE_ENV || ''
+      if (env === 'production') {
+        console.error('[auth/telegram] DEV_MODE rejected in production!')
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized: Dev mode disabled in production' }),
+          { status: 403 }
+        )
+      }
+
+      console.warn('[auth/telegram] DEV MODE: local dev bypass activated')
+      return await authUser(supabase, 111222333, 'Local Dev', 'local_dev', botToken)
+    }
+
+    // ── 3. Normal path: HMAC validation ──────────────────────────────────
+    if (!validateTelegramInitData(initData, botToken)) {
+      return new Response(JSON.stringify({ error: 'Invalid Telegram signature' }), { status: 401 })
+    }
+
+    // Parse Telegram user
+    const urlParams = new URLSearchParams(initData)
+    const userStr = urlParams.get('user')
+    if (!userStr) {
+      return new Response(JSON.stringify({ error: 'No user data in initData' }), { status: 400 })
+    }
+
+    let tgUser: { id: number; first_name: string; last_name?: string; username?: string }
+    try {
+      tgUser = JSON.parse(userStr)
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid user JSON' }), { status: 400 })
+    }
+
+    const tgId = tgUser.id
+    const fullName = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ').trim() || `User ${tgId}`
+    const username = tgUser.username || `user_${tgId}`
+
+    return await authUser(supabase, tgId, fullName, username, botToken)
+  } catch (error: any) {
+    // ── 4. Global catch-all: NEVER hang without a response ──────────────
+    console.error('[auth/telegram] Unhandled error:', error)
+    return new Response(
+      JSON.stringify({ error: 'Internal Server Error' }),
+      { status: 500 }
+    )
   }
-
-  // ── Normal path: HMAC validation ────────────────────────────────────────
-  if (!validateTelegramInitData(initData, botToken)) {
-    return new Response(JSON.stringify({ error: 'Invalid Telegram signature' }), { status: 401 })
-  }
-
-  // Parse Telegram user
-  const urlParams = new URLSearchParams(initData)
-  const userStr = urlParams.get('user')
-  if (!userStr) {
-    return new Response(JSON.stringify({ error: 'No user data in initData' }), { status: 400 })
-  }
-
-  let tgUser: { id: number; first_name: string; last_name?: string; username?: string }
-  try {
-    tgUser = JSON.parse(userStr)
-  } catch {
-    return new Response(JSON.stringify({ error: 'Invalid user JSON' }), { status: 400 })
-  }
-
-  const tgId = tgUser.id
-  const fullName = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ').trim() || `User ${tgId}`
-  const username = tgUser.username || `user_${tgId}`
-
-  return authUser(supabase, tgId, fullName, username, botToken)
 }

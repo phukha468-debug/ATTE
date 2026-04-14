@@ -43,6 +43,14 @@ export async function loginWithTelegram(): Promise<AuthResult> {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Unknown error' }))
+
+    // User-friendly messages for common error codes
+    if (response.status === 403) {
+      throw new Error('Откройте приложение через Telegram, а не через браузер.')
+    }
+    if (response.status === 401) {
+      throw new Error('Ошибка авторизации Telegram. Попробуйте открыть приложение заново.')
+    }
     throw new Error(`Auth failed: ${response.status} ${error.error}`)
   }
 
