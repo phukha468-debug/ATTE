@@ -39,9 +39,15 @@ function hmacSHA256(key: string, data: string): Buffer {
 }
 
 function validateTelegramInitData(initData: string, botToken: string): boolean {
-  // Sanitize: trim, remove trailing whitespace/newlines
-  const sanitized = initData.trim().replace(/[\r\n]+$/, '')
-  const urlParams = new URLSearchParams(sanitized)
+  // Sanitize: trim, remove trailing whitespace/newlines, strip JSON wrapping quotes
+  let cleanInitData = initData.trim().replace(/[\r\n]+$/, '')
+  cleanInitData = cleanInitData.replace(/^["']|["']$/g, '')
+
+  console.log('[auth] DataCheckString debug:')
+  console.log('  cleanInitData length:', cleanInitData.length)
+  console.log('  cleanInitData preview:', cleanInitData.substring(0, 80))
+
+  const urlParams = new URLSearchParams(cleanInitData)
   const hash = urlParams.get('hash')
   if (!hash) {
     console.warn('[auth] ✗ No hash in initData')
@@ -50,10 +56,14 @@ function validateTelegramInitData(initData: string, botToken: string): boolean {
 
   urlParams.delete('hash')
 
+  // Alphabetical sort per Telegram docs: https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
   const params = Array.from(urlParams.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, value]) => `${key}=${value}`)
     .join('\n')
+
+  console.log('[auth] DataCheckString (first 50 chars):', params.substring(0, 50))
+  console.log('[auth] DataCheckString keys (sorted):', Array.from(urlParams.keys()).sort().join(', '))
 
   const secretKey = hmacSHA256(botToken, 'WebAppData')
   const dataCheckString = hmacSHA256(secretKey.toString('hex'), params)
