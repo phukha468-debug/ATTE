@@ -64,6 +64,7 @@ function validateTelegramInitData(initData: string, botToken: string): boolean {
 
   console.log('[auth] DataCheckString keys (sorted):', keys.join(', '))
   console.log('[auth] DataCheckString (full):\n' + dataCheckString)
+  console.log('[auth] DataCheckString (base64):', Buffer.from(dataCheckString).toString('base64'))
   console.log('[auth] Hash received (full):', hash)
 
   const secretKey = createHmac('sha256', 'WebAppData').update(botToken).digest()
