@@ -29,20 +29,40 @@ export const fetchQuestions = async (): Promise<Question[]> => {
   return data || []
 }
 
-/**
- * Получить вопросы по категории.
- */
-export const fetchQuestionsByCategory = async (category: string): Promise<Question[]> => {
-  const { data, error } = await supabase
-    .from('questions')
-    .select('*')
-    .eq('category', category)
-    .order('created_at', { ascending: true })
+export interface EvaluationResult {
+  score: number
+  feedback: string
+  category_scores: Record<string, number>
+}
 
-  if (error) {
-    console.error('fetchQuestionsByCategory error:', error)
-    throw new Error(`Failed to fetch questions for category ${category}: ${error.message}`)
+/**
+ * Отправить ответы на LLM-оценку.
+ * Передаёт Bearer-токен сессии для серверной валидации JWT.
+ */
+export const submitTestResults = async (
+  answers: Record<string, { value: unknown; text?: string }>
+): Promise<EvaluationResult> => {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  if (!session?.access_token) {
+    throw new Error('No active session. Please log in first.')
   }
 
-  return data || []
+  const response = await fetch('/api/ai/evaluate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ answers }),
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }))
+    throw new Error(`Evaluation failed: ${response.status} ${error.error || ''}`)
+  }
+
+  return response.json()
 }
