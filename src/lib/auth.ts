@@ -23,7 +23,13 @@ export interface AuthResult {
  */
 export async function loginWithTelegram(): Promise<AuthResult> {
   const webapp = (window as any).Telegram?.WebApp
-  const initData = webapp?.initData
+  let initData = webapp?.initData
+
+  // DEV MODE bypass: when running locally without Telegram WebApp
+  if (import.meta.env.DEV && !initData) {
+    console.warn('[auth] DEV MODE: bypassing Telegram auth for local development')
+    initData = 'DEV_MODE'
+  }
 
   if (!initData) {
     throw new Error('Telegram WebApp initData недоступен. Запустите приложение внутри Telegram.')

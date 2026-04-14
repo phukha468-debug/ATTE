@@ -4,6 +4,8 @@
  * Паттерн: клиент отправляет initData → сервер проверяет HMAC-SHA-256 →
  * находит/создаёт пользователя в Supabase → возвращает сессию.
  *
+ * DEV MODE: initData === "DEV_MODE" пропускает HMAC-валидацию (только local dev).
+ *
  * Env vars: TG_BOT_TOKEN, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
  */
 
@@ -40,61 +42,19 @@ function getUserPassword(tgId: number, botToken: string): string {
   return hmacSHA256(botToken, `shadow_pw_${tgId}`).toString('hex')
 }
 
-// ─── Handler ───────────────────────────────────────────────────────────────
+// ─── Core logic: create or find user, return session ────────────────────────
 
-export default async function handler(req: Request): Promise<Response> {
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 })
-  }
-
-  const botToken = process.env.TG_BOT_TOKEN
-  const supabaseUrl = process.env.SUPABASE_URL
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!botToken || !supabaseUrl || !serviceRoleKey) {
-    return new Response(JSON.stringify({ error: 'Server configuration error' }), { status: 500 })
-  }
-
-  let body: { initData?: string }
-  try {
-    body = await req.json()
-  } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400 })
-  }
-
-  const { initData } = body
-  if (!initData || typeof initData !== 'string') {
-    return new Response(JSON.stringify({ error: 'Missing initData' }), { status: 400 })
-  }
-
-  // Step 1: Validate HMAC
-  if (!validateTelegramInitData(initData, botToken)) {
-    return new Response(JSON.stringify({ error: 'Invalid Telegram signature' }), { status: 401 })
-  }
-
-  // Step 2: Parse Telegram user
-  const urlParams = new URLSearchParams(initData)
-  const userStr = urlParams.get('user')
-  if (!userStr) {
-    return new Response(JSON.stringify({ error: 'No user data in initData' }), { status: 400 })
-  }
-
-  let tgUser: { id: number; first_name: string; last_name?: string; username?: string }
-  try {
-    tgUser = JSON.parse(userStr)
-  } catch {
-    return new Response(JSON.stringify({ error: 'Invalid user JSON' }), { status: 400 })
-  }
-
-  const tgId = tgUser.id
-  const fullName = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ').trim() || `User ${tgId}`
-  const username = tgUser.username || `user_${tgId}`
+async function authUser(
+  supabase: ReturnType<typeof createClient>,
+  tgId: number,
+  fullName: string,
+  username: string,
+  botToken: string,
+): Promise<Response> {
   const email = `tg_${tgId}@atte.local`
   const password = getUserPassword(tgId, botToken)
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey)
-
-  // Step 3: Check if profile exists
+  // Step 1: Check if profile exists
   const { data: existingUser } = await supabase
     .from('users')
     .select('id, company_id')
@@ -106,7 +66,7 @@ export default async function handler(req: Request): Promise<Response> {
   if (existingUser) {
     companyId = existingUser.company_id
   } else {
-    // Step 4: Create default company
+    // Step 2: Create default company
     const { data: newCompany } = await supabase
       .from('companies')
       .insert({
@@ -119,7 +79,7 @@ export default async function handler(req: Request): Promise<Response> {
 
     companyId = newCompany?.id || null
 
-    // Step 5: Create Supabase auth user
+    // Step 3: Create Supabase auth user
     const { data: authData, error: createErr } = await supabase.auth.admin.createUser({
       email,
       password,
@@ -151,7 +111,7 @@ export default async function handler(req: Request): Promise<Response> {
     }
   }
 
-  // Step 7: Sign in to get session
+  // Step 4: Sign in to get session
   const { data: signInResult, error: signInErr } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -170,4 +130,71 @@ export default async function handler(req: Request): Promise<Response> {
     }),
     { status: 200, headers: { 'Content-Type': 'application/json' } }
   )
+}
+
+// ─── Handler ───────────────────────────────────────────────────────────────
+
+export default async function handler(req: Request): Promise<Response> {
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 })
+  }
+
+  const botToken = process.env.TG_BOT_TOKEN
+  const supabaseUrl = process.env.SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!botToken || !supabaseUrl || !serviceRoleKey) {
+    return new Response(JSON.stringify({ error: 'Server configuration error' }), { status: 500 })
+  }
+
+  let body: { initData?: string }
+  try {
+    body = await req.json()
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400 })
+  }
+
+  const { initData } = body
+  if (!initData || typeof initData !== 'string') {
+    return new Response(JSON.stringify({ error: 'Missing initData' }), { status: 400 })
+  }
+
+  const supabase = createClient(supabaseUrl, serviceRoleKey)
+
+  // ── DEV MODE bypass (STRICT: blocked in production) ──────────────────────
+  if (initData === 'DEV_MODE') {
+    const env = process.env.VERCEL_ENV || process.env.NODE_ENV || ''
+    if (env === 'production') {
+      console.error('[auth/telegram] DEV_MODE rejected in production!')
+      return new Response(JSON.stringify({ error: 'DEV MODE blocked in production' }), { status: 403 })
+    }
+
+    console.warn('[auth/telegram] DEV MODE: local dev bypass activated')
+    return authUser(supabase, 111222333, 'Local Dev', 'local_dev', botToken)
+  }
+
+  // ── Normal path: HMAC validation ────────────────────────────────────────
+  if (!validateTelegramInitData(initData, botToken)) {
+    return new Response(JSON.stringify({ error: 'Invalid Telegram signature' }), { status: 401 })
+  }
+
+  // Parse Telegram user
+  const urlParams = new URLSearchParams(initData)
+  const userStr = urlParams.get('user')
+  if (!userStr) {
+    return new Response(JSON.stringify({ error: 'No user data in initData' }), { status: 400 })
+  }
+
+  let tgUser: { id: number; first_name: string; last_name?: string; username?: string }
+  try {
+    tgUser = JSON.parse(userStr)
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid user JSON' }), { status: 400 })
+  }
+
+  const tgId = tgUser.id
+  const fullName = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ').trim() || `User ${tgId}`
+  const username = tgUser.username || `user_${tgId}`
+
+  return authUser(supabase, tgId, fullName, username, botToken)
 }
