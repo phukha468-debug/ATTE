@@ -12,7 +12,7 @@
 export const config = { runtime: 'nodejs' }
 
 import { createClient } from '@supabase/supabase-js'
-import { createHmac, timingSafeEqual } from 'crypto'
+import { createHmac } from 'crypto'
 
 // ─── DB Schema (Law of Truth — synced with BRIEF.md) ────────────────────────
 
@@ -43,10 +43,6 @@ function validateTelegramInitData(initData: string, botToken: string): boolean {
   let cleanInitData = initData.trim().replace(/[\r\n]+$/, '')
   cleanInitData = cleanInitData.replace(/^["']|["']$/g, '')
 
-  console.log('[auth] DataCheckString debug:')
-  console.log('  cleanInitData length:', cleanInitData.length)
-  console.log('  cleanInitData preview:', cleanInitData.substring(0, 80))
-
   const urlParams = new URLSearchParams(cleanInitData)
 
   // Support both 'hash' (WebApp) and 'signature' (alternative) keys
@@ -69,18 +65,18 @@ function validateTelegramInitData(initData: string, botToken: string): boolean {
   console.log('[auth] DataCheckString (first 50 chars):', params.substring(0, 50))
   console.log('[auth] DataCheckString keys (sorted):', Array.from(urlParams.keys()).sort().join(', '))
 
-  const secretKey = hmacSHA256(botToken, 'WebAppData')
-  const dataCheckString = hmacSHA256(secretKey.toString('hex'), params)
+  // FIX 1: 'WebAppData' — это ключ, botToken — это данные (по спецификации Telegram)
+  const secretKey = createHmac('sha256', 'WebAppData').update(botToken).digest()
 
-  // HMAC Debug logging (no secrets, just first chars)
-  console.log('[auth] HMAC Debug:', {
-    receivedHash: hash.slice(0, 5) + '...',
-    calculatedHash: dataCheckString.toString('hex').slice(0, 5) + '...',
-    dataStringLength: params.length,
-    paramKeys: Array.from(urlParams.keys()),
+  // FIX 2: secretKey передается как Buffer (сырые байты), а не как hex-строка
+  const calculatedHash = createHmac('sha256', secretKey).update(params).digest('hex')
+
+  console.log('[auth] Crypto Debug:', {
+    received: hash.slice(0, 5) + '...',
+    calculated: calculatedHash.slice(0, 5) + '...'
   })
 
-  return timingSafeEqual(dataCheckString, Buffer.from(hash, 'hex'))
+  return calculatedHash === hash
 }
 
 // ─── Deterministic password (same for same user, never changes) ─────────────
