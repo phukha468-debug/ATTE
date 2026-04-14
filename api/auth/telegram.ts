@@ -11,7 +11,7 @@
 
 export const config = { runtime: 'nodejs' }
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { createHmac } from 'crypto'
 
 // ─── DB Schema (Law of Truth — synced with BRIEF.md) ────────────────────────
@@ -58,7 +58,7 @@ function validateTelegramInitData(initData: string, botToken: string): boolean {
 
   // Alphabetical sort per Telegram docs: https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
   const params = Array.from(urlParams.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     .map(([key, value]) => `${key}=${value}`)
     .join('\n')
 
@@ -88,7 +88,7 @@ function getUserPassword(tgId: number, botToken: string): string {
 // ─── Core logic: create or find user, return session ────────────────────────
 
 async function authUser(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   tgId: number,
   fullName: string,
   username: string,
@@ -133,12 +133,12 @@ async function authUser(
       .select('id')
       .single()
 
-    if (companyError) {
+    if (companyError || !newCompany) {
       console.error('[auth] ✗ companies.insert error:', companyError)
       return new Response(JSON.stringify({ error: 'Failed to create company' }), { status: 500 })
     }
 
-    companyId = newCompany?.id || null
+    companyId = newCompany.id
     console.log(`[auth] ✓ Company created: id=${companyId}`)
 
     // Step 3: Create Supabase auth user
@@ -222,7 +222,7 @@ export default async function handler(req: Request): Promise<Response> {
       return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 })
     }
 
-    const botToken = process.env.TG_BOT_TOKEN
+    const botToken = process.env.TG_BOT_TOKEN?.trim()
     const supabaseUrl = process.env.SUPABASE_URL
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -262,7 +262,7 @@ export default async function handler(req: Request): Promise<Response> {
 
     console.log(`[auth] 1. Получили initData (length=${initData.length}, starts_with="${initData.slice(0, 20)}...")`)
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey)
+    const supabase = createClient<any, 'public', any>(supabaseUrl, serviceRoleKey)
 
     // ── 3. DEV MODE bypass (STRICT: blocked in production) ───────────────
     if (initData === 'DEV_MODE') {
