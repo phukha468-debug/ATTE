@@ -39,9 +39,14 @@ function hmacSHA256(key: string, data: string): Buffer {
 }
 
 function validateTelegramInitData(initData: string, botToken: string): boolean {
-  const urlParams = new URLSearchParams(initData)
+  // Sanitize: trim, remove trailing whitespace/newlines
+  const sanitized = initData.trim().replace(/[\r\n]+$/, '')
+  const urlParams = new URLSearchParams(sanitized)
   const hash = urlParams.get('hash')
-  if (!hash) return false
+  if (!hash) {
+    console.warn('[auth] ✗ No hash in initData')
+    return false
+  }
 
   urlParams.delete('hash')
 
@@ -52,6 +57,14 @@ function validateTelegramInitData(initData: string, botToken: string): boolean {
 
   const secretKey = hmacSHA256(botToken, 'WebAppData')
   const dataCheckString = hmacSHA256(secretKey.toString('hex'), params)
+
+  // HMAC Debug logging (no secrets, just first chars)
+  console.log('[auth] HMAC Debug:', {
+    receivedHash: hash.slice(0, 5) + '...',
+    calculatedHash: dataCheckString.toString('hex').slice(0, 5) + '...',
+    dataStringLength: params.length,
+    paramKeys: Array.from(urlParams.keys()),
+  })
 
   return timingSafeEqual(dataCheckString, Buffer.from(hash, 'hex'))
 }
