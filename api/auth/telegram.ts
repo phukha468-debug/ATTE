@@ -64,16 +64,8 @@ function validateTelegramInitData(initData: string, botToken: string): boolean {
   const keys = Array.from(paramsMap.keys()).sort()
   const dataCheckString = keys.map(key => `${key}=${paramsMap.get(key)}`).join('\n')
 
-  console.log('[auth] DataCheckString keys (sorted):', keys.join(', '))
-  console.log('[auth] DataCheckString (full):\n' + dataCheckString)
-  console.log('[auth] DataCheckString (base64):', Buffer.from(dataCheckString).toString('base64'))
-  console.log('[auth] Hash received (full):', hash)
-
   const secretKey = createHmac('sha256', 'WebAppData').update(botToken).digest()
   const calculatedHash = createHmac('sha256', secretKey).update(dataCheckString).digest('hex')
-
-  console.log('[auth] Hash calculated (full):', calculatedHash)
-  console.log('[auth] Raw Crypto:', { received: hash.slice(0, 5), calculated: calculatedHash.slice(0, 5) })
 
   return calculatedHash === hash
 }
@@ -231,14 +223,6 @@ export default async function handler(req: Request): Promise<Response> {
       return new Response(JSON.stringify({ error: 'Server configuration error' }), { status: 500 })
     }
 
-    console.log('[auth] BotToken diagnostic:', {
-      rawLen: process.env.TG_BOT_TOKEN?.length,
-      cleanLen: botToken.length,
-      hasInvisible: process.env.TG_BOT_TOKEN?.length !== botToken.length,
-      botId: botToken.split(':')[0],
-      preview: botToken.slice(0, 6) + '...' + botToken.slice(-4),
-    })
-
     console.log('[auth] ✓ Env vars present')
 
     // ── 2. Body parsing (Node.js stream read — guaranteed to work) ────
@@ -249,8 +233,6 @@ export default async function handler(req: Request): Promise<Response> {
         chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk)
       }
       const rawBody = Buffer.concat(chunks).toString('utf-8')
-      console.log('[auth] Raw body received (first 100 chars):', rawBody.slice(0, 100))
-
       if (!rawBody || rawBody.length === 0) {
         console.warn('[auth] ✗ Empty request body stream')
         return new Response(JSON.stringify({ error: 'Missing request body' }), { status: 400 })
@@ -268,8 +250,7 @@ export default async function handler(req: Request): Promise<Response> {
       return new Response(JSON.stringify({ error: 'Missing initData' }), { status: 400 })
     }
 
-    console.log(`[auth] 1. Получили initData (length=${initData.length}, starts_with="${initData.slice(0, 20)}...")`)
-    console.log('[auth] initData (full):', initData)
+    console.log(`[auth] 1. Получили initData (length=${initData.length})`)
 
     const supabase = createClient<any, 'public', any>(supabaseUrl, serviceRoleKey)
 
