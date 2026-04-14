@@ -252,7 +252,11 @@ export default async function handler(req: Request): Promise<Response> {
 
     console.log(`[auth] 1. Получили initData (length=${initData.length})`)
 
-    const supabase = createClient<any, 'public', any>(supabaseUrl, serviceRoleKey)
+    // Disable background timers — autoRefreshToken keeps Node.js event loop alive
+    // and causes Vercel to hang for 300s (timeout) instead of completing the request.
+    const supabase = createClient<any, 'public', any>(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    })
 
     // ── 3. DEV MODE bypass (STRICT: blocked in production) ───────────────
     if (initData === 'DEV_MODE') {
