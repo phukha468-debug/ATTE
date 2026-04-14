@@ -48,13 +48,17 @@ function validateTelegramInitData(initData: string, botToken: string): boolean {
   console.log('  cleanInitData preview:', cleanInitData.substring(0, 80))
 
   const urlParams = new URLSearchParams(cleanInitData)
-  const hash = urlParams.get('hash')
+
+  // Support both 'hash' (WebApp) and 'signature' (alternative) keys
+  const hash = urlParams.get('hash') || urlParams.get('signature')
   if (!hash) {
-    console.warn('[auth] ✗ No hash in initData')
+    console.warn('[auth] ✗ No hash or signature in initData')
     return false
   }
 
+  // Remove both keys from params before building data_check_string
   urlParams.delete('hash')
+  urlParams.delete('signature')
 
   // Alphabetical sort per Telegram docs: https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
   const params = Array.from(urlParams.entries())
