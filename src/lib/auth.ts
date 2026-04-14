@@ -35,11 +35,13 @@ export async function loginWithTelegram(): Promise<AuthResult> {
     throw new Error('Telegram WebApp initData недоступен. Запустите приложение внутри Telegram.')
   }
 
+  console.log('[auth-deep] 1. Calling fetch...')
   const response = await fetch('/api/auth/telegram', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ initData }),
   })
+  console.log('[auth-deep] 2. Fetch complete, status:', response.status)
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Unknown error' }))
@@ -54,13 +56,17 @@ export async function loginWithTelegram(): Promise<AuthResult> {
     throw new Error(`Auth failed: ${response.status} ${error.error}`)
   }
 
+  console.log('[auth-deep] 3. Parsing JSON...')
   const result: AuthResult = await response.json()
+  console.log('[auth-deep] 4. JSON parsed successfully')
 
   // Установить сессию в Supabase клиент
+  console.log('[auth-deep] 5. Calling setSession...')
   const { error: sessionError } = await supabase.auth.setSession({
     access_token: result.session.access_token,
     refresh_token: result.session.refresh_token,
   })
+  console.log('[auth-deep] 6. setSession complete, error:', sessionError?.message || 'none')
 
   if (sessionError) {
     throw new Error(`setSession failed: ${sessionError.message}`)
