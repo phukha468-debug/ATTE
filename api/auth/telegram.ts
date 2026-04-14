@@ -210,20 +210,25 @@ export default async function handler(req: Request): Promise<Response> {
 
     console.log('[auth] ✓ Env vars present')
 
-    // ── 2. Body parsing (robust: text() → JSON.parse) ───────────────────
-    if (!req.body) {
-      console.warn('[auth] ✗ No request body')
-      return new Response(JSON.stringify({ error: 'Missing request body' }), { status: 400 })
-    }
-
+    // ── 2. Body parsing (Node.js stream read — guaranteed to work) ────
     let body: { initData?: string }
     try {
-      const rawBody = await req.text()
+      const chunks: Buffer[] = []
+      for await (const chunk of req as unknown as AsyncIterable<Buffer>) {
+        chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk)
+      }
+      const rawBody = Buffer.concat(chunks).toString('utf-8')
       console.log('[auth] Raw body received (first 100 chars):', rawBody.slice(0, 100))
+
+      if (!rawBody || rawBody.length === 0) {
+        console.warn('[auth] ✗ Empty request body stream')
+        return new Response(JSON.stringify({ error: 'Missing request body' }), { status: 400 })
+      }
+
       body = JSON.parse(rawBody)
     } catch (e: any) {
-      console.error('[auth] JSON Parse Error:', e.message)
-      return new Response(JSON.stringify({ error: 'Invalid JSON', detail: e.message }), { status: 400 })
+      console.error('[auth] Body read / JSON Parse Error:', e.message)
+      return new Response(JSON.stringify({ error: 'Invalid JSON body', detail: e.message }), { status: 400 })
     }
 
     const { initData } = body
