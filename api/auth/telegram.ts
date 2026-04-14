@@ -50,14 +50,16 @@ function validateTelegramInitData(initData: string, botToken: string): boolean {
     paramsMap.set(key, decodeURIComponent(val))
   })
 
-  const hash = paramsMap.get('hash') || paramsMap.get('signature')
+  // Only extract 'hash' — do NOT delete 'signature'.
+  // Telegram computes hash over ALL fields except 'hash' itself,
+  // so 'signature' (if present) must stay in the data_check_string.
+  const hash = paramsMap.get('hash')
   if (!hash) {
-    console.warn('[auth] ✗ No hash or signature in initData')
+    console.warn('[auth] ✗ No hash in initData')
     return false
   }
 
   paramsMap.delete('hash')
-  paramsMap.delete('signature')
 
   const keys = Array.from(paramsMap.keys()).sort()
   const dataCheckString = keys.map(key => `${key}=${paramsMap.get(key)}`).join('\n')
