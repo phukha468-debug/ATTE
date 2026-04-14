@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +6,7 @@ import { Bot, Cpu, Rocket, Lock, Trophy, ArrowLeft } from 'lucide-react';
 import { TestRunner } from '@/components/TestRunner';
 import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
+import { fetchQuestions } from '@/lib/api';
 
 const stages = [
   {
@@ -40,6 +41,16 @@ const stages = [
 export default function Tests() {
   const [activeStage, setActiveStage] = useState<number | null>(null);
   const [testResult, setTestResult] = useState<number | null>(null);
+  const [questionsCount, setQuestionsCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetchQuestions()
+      .then(qs => {
+        setQuestionsCount(qs.length);
+        console.log(`✅ fetchQuestions: ${qs.length} questions from Supabase`);
+      })
+      .catch(err => console.error('❌ fetchQuestions failed:', err.message));
+  }, []);
 
   const startTest = (id: number) => {
     setActiveStage(id);
@@ -94,6 +105,13 @@ export default function Tests() {
       <header className="pt-4">
         <h1 className="text-3xl font-bold tracking-tight font-heading">Твоя Аттестация</h1>
         <p className="text-muted-foreground mt-1">Пройди все этапы для повышения грейда</p>
+        {questionsCount !== null && (
+          <p className="text-xs text-muted-foreground mt-1">
+            {questionsCount > 0
+              ? `📚 Загружено ${questionsCount} вопросов из БД`
+              : '⚠️ Вопросы не найдены — запусти npm run seed'}
+          </p>
+        )}
       </header>
 
       <div className="space-y-4">
