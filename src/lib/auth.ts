@@ -1,7 +1,7 @@
 import { supabase } from './supabase'
 
 export interface AuthUser {
-  telegram_id: number
+  tg_id: number
   full_name: string
   username: string
   company_id: string | null

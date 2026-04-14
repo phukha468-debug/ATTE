@@ -9,6 +9,8 @@
  * Env vars: TG_BOT_TOKEN, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
  */
 
+export const config = { runtime: 'nodejs' }
+
 import { createClient } from '@supabase/supabase-js'
 import { createHmac, timingSafeEqual } from 'crypto'
 
@@ -61,7 +63,7 @@ async function authUser(
   const { data: existingUser, error: selectError } = await supabase
     .from('users')
     .select('id, company_id')
-    .eq('telegram_id', tgId)
+    .eq('tg_id', tgId)
     .single()
 
   if (selectError && selectError.code !== 'PGRST116') {
@@ -104,7 +106,7 @@ async function authUser(
       password,
       email_confirm: true,
       user_metadata: {
-        telegram_id: tgId,
+        tg_id: tgId,
         full_name: fullName,
         username,
       },
@@ -127,7 +129,7 @@ async function authUser(
       console.log('[auth] Step 3b: Inserting user profile into users table...')
       const { error: profileError } = await supabase.from('users').insert({
         id: userId,
-        telegram_id: tgId,
+        tg_id: tgId,
         full_name: fullName,
         job_title: 'Not set',
         department: 'Not set',
@@ -160,7 +162,7 @@ async function authUser(
   return new Response(
     JSON.stringify({
       session: signInResult.session,
-      user: { telegram_id: tgId, full_name: fullName, username, company_id: companyId },
+      user: { tg_id: tgId, full_name: fullName, username, company_id: companyId },
       is_new_user: !existingUser,
     }),
     { status: 200, headers: { 'Content-Type': 'application/json' } }
@@ -190,6 +192,12 @@ export default async function handler(req: Request): Promise<Response> {
 
     console.log('[auth] ✓ Env vars present')
 
+    // ── 2. Body check (guard against missing body) ──────────────────────
+    if (!req.body) {
+      console.warn('[auth] ✗ No request body')
+      return new Response(JSON.stringify({ error: 'Missing request body' }), { status: 400 })
+    }
+
     let body: { initData?: string }
     try {
       body = await req.json()
@@ -208,7 +216,7 @@ export default async function handler(req: Request): Promise<Response> {
 
     const supabase = createClient(supabaseUrl, serviceRoleKey)
 
-    // ── 2. DEV MODE bypass (STRICT: blocked in production) ───────────────
+    // ── 3. DEV MODE bypass (STRICT: blocked in production) ───────────────
     if (initData === 'DEV_MODE') {
       const env = process.env.VERCEL_ENV || process.env.NODE_ENV || ''
       console.log(`[auth] DEV_MODE detected, VERCEL_ENV="${env}"`)
@@ -225,7 +233,7 @@ export default async function handler(req: Request): Promise<Response> {
       return await authUser(supabase, 111222333, 'Local Dev', 'local_dev', botToken)
     }
 
-    // ── 3. Normal path: HMAC validation ──────────────────────────────────
+    // ── 4. Normal path: HMAC validation ──────────────────────────────────
     console.log('[auth] Step 2: Running HMAC validation...')
     if (!validateTelegramInitData(initData, botToken)) {
       console.warn('[auth] ✗ HMAC validation failed — 401')
@@ -260,7 +268,7 @@ export default async function handler(req: Request): Promise<Response> {
     console.log('[auth] Step 4: Calling authUser (Supabase create/signin)...')
     return await authUser(supabase, tgId, fullName, username, botToken)
   } catch (error: any) {
-    // ── 4. Global catch-all: NEVER hang without a response ──────────────
+    // ── 5. Global catch-all: NEVER hang without a response ──────────────
     console.error('[auth] ✗✗✗ UNHANDLED ERROR (500):', error)
     return new Response(
       JSON.stringify({ error: 'Internal Server Error' }),

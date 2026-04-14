@@ -1,6 +1,6 @@
 export interface UserProfile {
   id: string;
-  telegram_id: number;
+  tg_id: number;
   full_name: string;
   job_title: string;
   department: string;
