@@ -9,10 +9,11 @@
  * Env vars: TG_BOT_TOKEN, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
  */
 
-export const config = { runtime: 'nodejs' }
-
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { createClient } from '@supabase/supabase-js'
 import { createHmac } from 'crypto'
+
+export const config = { runtime: 'nodejs' }
 
 // ─── DB Schema (Law of Truth — synced with BRIEF.md) ────────────────────────
 
@@ -76,7 +77,7 @@ function getUserPassword(tgId: number, botToken: string): string {
   return hmacSHA256(botToken, `shadow_pw_${tgId}`).toString('hex')
 }
 
-// ─── Core logic: create or find user, return session ────────────────────────
+// ─── Core logic: create or find user, return session via res ────────────────
 
 async function authUser(
   supabase: any,
@@ -84,7 +85,8 @@ async function authUser(
   fullName: string,
   username: string,
   botToken: string,
-): Promise<Response> {
+  res: VercelResponse,
+): Promise<void> {
   const { users, companies } = DB_SCHEMA
   console.log(`[auth] → authUser called: tgId=${tgId}, fullName="${fullName}"`)
 
@@ -101,7 +103,7 @@ async function authUser(
 
   if (selectError && selectError.code !== 'PGRST116') {
     console.error('[auth] ✗ users.select error:', selectError)
-    return new Response(JSON.stringify({ error: 'Database error' }), { status: 500 })
+    return res.status(500).json({ error: 'Database error' })
   }
 
   let companyId: string | null = null
@@ -126,7 +128,7 @@ async function authUser(
 
     if (companyError || !newCompany) {
       console.error('[auth] ✗ companies.insert error:', companyError)
-      return new Response(JSON.stringify({ error: 'Failed to create company' }), { status: 500 })
+      return res.status(500).json({ error: 'Failed to create company' })
     }
 
     companyId = newCompany.id
@@ -142,13 +144,13 @@ async function authUser(
         tg_id: tgId,
         full_name: fullName,
         username,
-        role: 'employee',  // default role (lowercase)
+        role: 'employee',
       },
     })
 
     if (createErr && createErr.code !== 'user_already_exists') {
       console.error('[auth] ✗ createUser error:', createErr)
-      return new Response(JSON.stringify({ error: createErr.message }), { status: 500 })
+      return res.status(500).json({ error: createErr.message })
     }
 
     if (createErr?.code === 'user_already_exists') {
@@ -171,7 +173,6 @@ async function authUser(
 
       if (profileError) {
         console.error('[auth] ✗ users.insert error:', profileError)
-        // Non-fatal: user exists in auth, can be fixed later
       } else {
         console.log('[auth] ✓ User profile inserted')
       }
@@ -187,73 +188,50 @@ async function authUser(
 
   if (signInErr) {
     console.error('[auth] ✗ signIn error:', signInErr)
-    return new Response(JSON.stringify({ error: signInErr.message }), { status: 500 })
+    return res.status(500).json({ error: signInErr.message })
   }
 
   console.log(`[auth] ✓ Session generated, returning 200`)
-  return new Response(
-    JSON.stringify({
-      session: signInResult.session,
-      user: { tg_id: tgId, full_name: fullName, username, company_id: companyId },
-      is_new_user: !existingUser,
-    }),
-    { status: 200, headers: { 'Content-Type': 'application/json' } }
-  )
+  return res.status(200).json({
+    session: signInResult.session,
+    user: { tg_id: tgId, full_name: fullName, username, company_id: companyId },
+    is_new_user: !existingUser,
+  })
 }
 
-// ─── Handler ───────────────────────────────────────────────────────────────
+// ─── Handler (Vercel standard: req, res) ───────────────────────────────────
 
-export default async function handler(req: Request): Promise<Response> {
-  console.log(`[auth] ▸ Incoming request: method=${req.method}, url=${req.url}`)
+export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+  console.log(`[auth] ▸ Incoming request: method=${req.method}`)
 
   try {
-    // ── 1. Method check (must come FIRST) ─────────────────────────────────
+    // ── 1. Method check ─────────────────────────────────
     if (req.method !== 'POST') {
       console.warn('[auth] ✗ Non-POST method rejected with 405')
-      return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 })
+      return res.status(405).json({ error: 'Method not allowed' })
     }
 
-    // Strip ALL non-printable / non-ASCII chars — .trim() misses invisible Unicode
     const botToken = process.env.TG_BOT_TOKEN?.replace(/[^\x21-\x7E]/g, '')
     const supabaseUrl = process.env.SUPABASE_URL
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
     if (!botToken || !supabaseUrl || !serviceRoleKey) {
       console.error('[auth] ✗ Missing env vars (redacted)')
-      return new Response(JSON.stringify({ error: 'Server configuration error' }), { status: 500 })
+      return res.status(500).json({ error: 'Server configuration error' })
     }
 
     console.log('[auth] ✓ Env vars present')
 
-    // ── 2. Body parsing (Node.js stream read — guaranteed to work) ────
-    let body: { initData?: string }
-    try {
-      const chunks: Buffer[] = []
-      for await (const chunk of req as unknown as AsyncIterable<Buffer>) {
-        chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk)
-      }
-      const rawBody = Buffer.concat(chunks).toString('utf-8')
-      if (!rawBody || rawBody.length === 0) {
-        console.warn('[auth] ✗ Empty request body stream')
-        return new Response(JSON.stringify({ error: 'Missing request body' }), { status: 400 })
-      }
-
-      body = JSON.parse(rawBody)
-    } catch (e: any) {
-      console.error('[auth] Body read / JSON Parse Error:', e.message)
-      return new Response(JSON.stringify({ error: 'Invalid JSON body', detail: e.message }), { status: 400 })
-    }
-
-    const { initData } = body
+    // ── 2. Body check (VercelRequest.body is already parsed) ──
+    const initData = req.body?.initData
     if (!initData || typeof initData !== 'string') {
       console.warn('[auth] ✗ Missing initData')
-      return new Response(JSON.stringify({ error: 'Missing initData' }), { status: 400 })
+      return res.status(400).json({ error: 'Missing initData' })
     }
 
     console.log(`[auth] 1. Получили initData (length=${initData.length})`)
 
-    // Disable background timers — autoRefreshToken keeps Node.js event loop alive
-    // and causes Vercel to hang for 300s (timeout) instead of completing the request.
+    // Disable background timers — prevents Vercel 300s timeout hang
     const supabase = createClient<any, 'public', any>(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     })
@@ -265,21 +243,18 @@ export default async function handler(req: Request): Promise<Response> {
 
       if (env === 'production') {
         console.error('[auth] ✗ DEV_MODE rejected in production!')
-        return new Response(
-          JSON.stringify({ error: 'Unauthorized: Dev mode disabled in production' }),
-          { status: 403 }
-        )
+        return res.status(403).json({ error: 'Unauthorized: Dev mode disabled in production' })
       }
 
       console.warn('[auth] ✓ DEV MODE: local dev bypass activated')
-      return await authUser(supabase, 111222333, 'Local Dev', 'local_dev', botToken)
+      return await authUser(supabase, 111222333, 'Local Dev', 'local_dev', botToken, res)
     }
 
     // ── 4. Normal path: HMAC validation ──────────────────────────────────
     console.log('[auth] Step 2: Running HMAC validation...')
     if (!validateTelegramInitData(initData, botToken)) {
       console.warn('[auth] ✗ HMAC validation failed — 401')
-      return new Response(JSON.stringify({ error: 'Invalid Telegram signature' }), { status: 401 })
+      return res.status(401).json({ error: 'Invalid Telegram signature' })
     }
 
     console.log('[auth] 2. HMAC валидация успешна ✓')
@@ -290,7 +265,7 @@ export default async function handler(req: Request): Promise<Response> {
     const userStr = urlParams.get('user')
     if (!userStr) {
       console.warn('[auth] ✗ No user data in initData')
-      return new Response(JSON.stringify({ error: 'No user data in initData' }), { status: 400 })
+      return res.status(400).json({ error: 'No user data in initData' })
     }
 
     let tgUser: { id: number; first_name: string; last_name?: string; username?: string }
@@ -298,7 +273,7 @@ export default async function handler(req: Request): Promise<Response> {
       tgUser = JSON.parse(userStr)
     } catch {
       console.warn('[auth] ✗ Invalid user JSON')
-      return new Response(JSON.stringify({ error: 'Invalid user JSON' }), { status: 400 })
+      return res.status(400).json({ error: 'Invalid user JSON' })
     }
 
     console.log(`[auth] 3. Telegram user parsed: id=${tgUser.id}, name="${tgUser.first_name}"`)
@@ -308,13 +283,10 @@ export default async function handler(req: Request): Promise<Response> {
     const username = tgUser.username || `user_${tgId}`
 
     console.log('[auth] Step 4: Calling authUser (Supabase create/signin)...')
-    return await authUser(supabase, tgId, fullName, username, botToken)
+    return await authUser(supabase, tgId, fullName, username, botToken, res)
   } catch (error: any) {
     // ── 5. Global catch-all: NEVER hang without a response ──────────────
     console.error('[auth] ✗✗✗ UNHANDLED ERROR (500):', error)
-    return new Response(
-      JSON.stringify({ error: 'Internal Server Error' }),
-      { status: 500 }
-    )
+    return res.status(500).json({ error: 'Internal Server Error' })
   }
 }
