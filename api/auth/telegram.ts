@@ -51,23 +51,35 @@ async function authUser(
   username: string,
   botToken: string,
 ): Promise<Response> {
+  console.log(`[auth] → authUser called: tgId=${tgId}, fullName="${fullName}"`)
+
   const email = `tg_${tgId}@atte.local`
   const password = getUserPassword(tgId, botToken)
 
   // Step 1: Check if profile exists
-  const { data: existingUser } = await supabase
+  console.log('[auth] Step 1: Checking if profile exists in users table...')
+  const { data: existingUser, error: selectError } = await supabase
     .from('users')
     .select('id, company_id')
     .eq('telegram_id', tgId)
     .single()
 
+  if (selectError && selectError.code !== 'PGRST116') {
+    console.error('[auth] ✗ users.select error:', selectError)
+    return new Response(JSON.stringify({ error: 'Database error' }), { status: 500 })
+  }
+
   let companyId: string | null = null
 
   if (existingUser) {
+    console.log(`[auth] ✓ Profile found: id=${existingUser.id}, company_id=${existingUser.company_id}`)
     companyId = existingUser.company_id
   } else {
+    console.log('[auth] ✗ Profile not found, creating new company...')
+
     // Step 2: Create default company
-    const { data: newCompany } = await supabase
+    console.log('[auth] Step 2: Inserting into companies table...')
+    const { data: newCompany, error: companyError } = await supabase
       .from('companies')
       .insert({
         name: `${fullName}'s Workspace`,
@@ -77,9 +89,16 @@ async function authUser(
       .select('id')
       .single()
 
+    if (companyError) {
+      console.error('[auth] ✗ companies.insert error:', companyError)
+      return new Response(JSON.stringify({ error: 'Failed to create company' }), { status: 500 })
+    }
+
     companyId = newCompany?.id || null
+    console.log(`[auth] ✓ Company created: id=${companyId}`)
 
     // Step 3: Create Supabase auth user
+    console.log('[auth] Step 3: Creating Supabase auth user (admin.createUser)...')
     const { data: authData, error: createErr } = await supabase.auth.admin.createUser({
       email,
       password,
@@ -92,14 +111,21 @@ async function authUser(
     })
 
     if (createErr && createErr.code !== 'user_already_exists') {
-      console.error('[auth/telegram] createUser error:', createErr)
+      console.error('[auth] ✗ createUser error:', createErr)
       return new Response(JSON.stringify({ error: createErr.message }), { status: 500 })
+    }
+
+    if (createErr?.code === 'user_already_exists') {
+      console.log('[auth] ⚠ User already exists in auth, skipping create')
+    } else {
+      console.log(`[auth] ✓ Auth user created: id=${authData?.user?.id}`)
     }
 
     const userId = authData?.user?.id
 
     if (userId) {
-      await supabase.from('users').insert({
+      console.log('[auth] Step 3b: Inserting user profile into users table...')
+      const { error: profileError } = await supabase.from('users').insert({
         id: userId,
         telegram_id: tgId,
         full_name: fullName,
@@ -108,20 +134,29 @@ async function authUser(
         grade: 1,
         company_id: companyId,
       })
+
+      if (profileError) {
+        console.error('[auth] ✗ users.insert error:', profileError)
+        // Non-fatal: user exists in auth, can be fixed later
+      } else {
+        console.log('[auth] ✓ User profile inserted')
+      }
     }
   }
 
   // Step 4: Sign in to get session
+  console.log('[auth] Step 4: Signing in (signInWithPassword) to generate session...')
   const { data: signInResult, error: signInErr } = await supabase.auth.signInWithPassword({
     email,
     password,
   })
 
   if (signInErr) {
-    console.error('[auth/telegram] signIn error:', signInErr)
+    console.error('[auth] ✗ signIn error:', signInErr)
     return new Response(JSON.stringify({ error: signInErr.message }), { status: 500 })
   }
 
+  console.log(`[auth] ✓ Session generated, returning 200`)
   return new Response(
     JSON.stringify({
       session: signInResult.session,
@@ -135,9 +170,12 @@ async function authUser(
 // ─── Handler ───────────────────────────────────────────────────────────────
 
 export default async function handler(req: Request): Promise<Response> {
+  console.log(`[auth] ▸ Incoming request: method=${req.method}, url=${req.url}`)
+
   try {
     // ── 1. Method check (must come FIRST) ─────────────────────────────────
     if (req.method !== 'POST') {
+      console.warn('[auth] ✗ Non-POST method rejected with 405')
       return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 })
     }
 
@@ -146,47 +184,62 @@ export default async function handler(req: Request): Promise<Response> {
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
     if (!botToken || !supabaseUrl || !serviceRoleKey) {
+      console.error('[auth] ✗ Missing env vars (redacted)')
       return new Response(JSON.stringify({ error: 'Server configuration error' }), { status: 500 })
     }
+
+    console.log('[auth] ✓ Env vars present')
 
     let body: { initData?: string }
     try {
       body = await req.json()
     } catch {
+      console.warn('[auth] ✗ Invalid JSON body')
       return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400 })
     }
 
     const { initData } = body
     if (!initData || typeof initData !== 'string') {
+      console.warn('[auth] ✗ Missing initData')
       return new Response(JSON.stringify({ error: 'Missing initData' }), { status: 400 })
     }
+
+    console.log(`[auth] 1. Получили initData (length=${initData.length}, starts_with="${initData.slice(0, 20)}...")`)
 
     const supabase = createClient(supabaseUrl, serviceRoleKey)
 
     // ── 2. DEV MODE bypass (STRICT: blocked in production) ───────────────
     if (initData === 'DEV_MODE') {
       const env = process.env.VERCEL_ENV || process.env.NODE_ENV || ''
+      console.log(`[auth] DEV_MODE detected, VERCEL_ENV="${env}"`)
+
       if (env === 'production') {
-        console.error('[auth/telegram] DEV_MODE rejected in production!')
+        console.error('[auth] ✗ DEV_MODE rejected in production!')
         return new Response(
           JSON.stringify({ error: 'Unauthorized: Dev mode disabled in production' }),
           { status: 403 }
         )
       }
 
-      console.warn('[auth/telegram] DEV MODE: local dev bypass activated')
+      console.warn('[auth] ✓ DEV MODE: local dev bypass activated')
       return await authUser(supabase, 111222333, 'Local Dev', 'local_dev', botToken)
     }
 
     // ── 3. Normal path: HMAC validation ──────────────────────────────────
+    console.log('[auth] Step 2: Running HMAC validation...')
     if (!validateTelegramInitData(initData, botToken)) {
+      console.warn('[auth] ✗ HMAC validation failed — 401')
       return new Response(JSON.stringify({ error: 'Invalid Telegram signature' }), { status: 401 })
     }
 
+    console.log('[auth] 2. HMAC валидация успешна ✓')
+
     // Parse Telegram user
+    console.log('[auth] Step 3: Parsing Telegram user data...')
     const urlParams = new URLSearchParams(initData)
     const userStr = urlParams.get('user')
     if (!userStr) {
+      console.warn('[auth] ✗ No user data in initData')
       return new Response(JSON.stringify({ error: 'No user data in initData' }), { status: 400 })
     }
 
@@ -194,17 +247,21 @@ export default async function handler(req: Request): Promise<Response> {
     try {
       tgUser = JSON.parse(userStr)
     } catch {
+      console.warn('[auth] ✗ Invalid user JSON')
       return new Response(JSON.stringify({ error: 'Invalid user JSON' }), { status: 400 })
     }
+
+    console.log(`[auth] 3. Telegram user parsed: id=${tgUser.id}, name="${tgUser.first_name}"`)
 
     const tgId = tgUser.id
     const fullName = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ').trim() || `User ${tgId}`
     const username = tgUser.username || `user_${tgId}`
 
+    console.log('[auth] Step 4: Calling authUser (Supabase create/signin)...')
     return await authUser(supabase, tgId, fullName, username, botToken)
   } catch (error: any) {
     // ── 4. Global catch-all: NEVER hang without a response ──────────────
-    console.error('[auth/telegram] Unhandled error:', error)
+    console.error('[auth] ✗✗✗ UNHANDLED ERROR (500):', error)
     return new Response(
       JSON.stringify({ error: 'Internal Server Error' }),
       { status: 500 }
