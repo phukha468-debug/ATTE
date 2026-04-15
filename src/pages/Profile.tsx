@@ -33,11 +33,11 @@ export default function Profile() {
   }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    // Clear localStorage and reload to re-trigger auth flow
-    localStorage.clear();
-    window.location.reload();
-  };
+    await supabase.auth.signOut()
+    // Clear test store state — NO window.location.reload (prevents 404 on Vercel)
+    localStorage.removeItem('test-store')
+    navigate('/', { replace: true })
+  }
 
   const handleMenuItem = (label: string) => {
     // Toast-like notification

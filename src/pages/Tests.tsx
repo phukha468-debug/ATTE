@@ -78,6 +78,10 @@ export default function Tests() {
   }, [])
 
   const startTest = (id: number) => {
+    if (testStore.questions.length === 0) {
+      setFetchError('Вопросы ещё не загружены. Подождите или обновите страницу.')
+      return
+    }
     setActiveStage(id)
     setEvalResult(null)
     setEvalError(null)
