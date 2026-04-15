@@ -13,6 +13,7 @@ import Profile from './pages/Profile';
 import Dashboard from './pages/Dashboard';
 import SimulatorPage from './pages/SimulatorPage';
 import SandboxPage from './pages/SandboxPage';
+import SimulatorResultPage from './pages/SimulatorResultPage';
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
           <Route index element={<Home />} />
           <Route path="tests" element={<Tests />} />
           <Route path="simulator" element={<SimulatorPage />} />
+          <Route path="simulator/result" element={<SimulatorResultPage />} />
           <Route path="sandbox/:taskId" element={<SandboxPage />} />
           <Route path="reports" element={<Reports />} />
           <Route path="dashboard" element={<Dashboard />} />

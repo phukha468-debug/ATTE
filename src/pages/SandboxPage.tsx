@@ -21,6 +21,7 @@ export default function SandboxPage() {
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isJudging, setIsJudging] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -52,7 +53,7 @@ export default function SandboxPage() {
   };
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || isLoading) return;
+    if (!inputValue.trim() || isLoading || isJudging) return;
 
     const userMessage: Message = { role: 'user', content: inputValue.trim() };
     setMessages(prev => [...prev, userMessage]);
@@ -78,14 +79,48 @@ export default function SandboxPage() {
     }
   };
 
-  const handleFinish = () => {
-    alert('Здесь будет вызов Судьи для оценки вашего результата!');
+  const handleFinish = async () => {
+    if (messages.length < 2 || isJudging) return;
+    
+    setIsJudging(true);
+    try {
+      const response = await fetch('/api/ai/judge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task, chatHistory: messages }),
+      });
+
+      if (!response.ok) throw new Error('Judging failed');
+      const result = await response.json();
+      navigate('/simulator/result', { state: result });
+    } catch (error) {
+      console.error('Judging error:', error);
+      alert('Ошибка при оценке. Попробуйте еще раз.');
+    } finally {
+      setIsJudging(false);
+    }
   };
 
   if (!task) return <div className="p-8 text-center">Задача не найдена</div>;
 
   return (
     <div className="fixed inset-0 bg-background flex flex-col font-sans overflow-hidden">
+      <AnimatePresence>
+        {isJudging && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center"
+          >
+            <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
+            <h2 className="text-lg font-bold">Claude Sonnet анализирует ваши промпты...</h2>
+            <p className="text-xs text-muted-foreground mt-2 max-w-xs">
+              Это может занять до 20 секунд. ИИ оценивает качество ваших инструкций и эффективность решения задачи.
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Header */}
       <header className="p-3 border-b bg-card flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
