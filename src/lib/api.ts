@@ -71,11 +71,13 @@ export interface TestResult {
   id: string
   user_id: string
   company_id: string | null
+  type?: 'stage1' | 'stage2'
   answers: unknown
   llm_feedback: {
     score: number
     feedback: string
-    category_scores: Record<string, number>
+    category_scores?: Record<string, number>
+    time_saved_multiplier?: number
   } | null
   score: number | null
   is_completed: boolean
@@ -129,7 +131,7 @@ export const fetchCurrentUserProfile = async () => {
 }
 
 /**
- * Получить последний завершенный результат текущего пользователя.
+ * Получить последний завершенный результат текущего пользователя для Этапа 1.
  */
 export const fetchLatestUserResult = async (): Promise<TestResult | null> => {
   const {
@@ -143,12 +145,41 @@ export const fetchLatestUserResult = async (): Promise<TestResult | null> => {
     .select('*')
     .eq('user_id', user.id)
     .eq('is_completed', true)
+    .or('type.eq.stage1,type.is.null') // Stage 1 results
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
 
   if (error) {
     console.error('fetchLatestUserResult error:', error)
+    return null
+  }
+
+  return data
+}
+
+/**
+ * Получить последний завершенный результат текущего пользователя для Этапа 2 (Симулятор).
+ */
+export const fetchLatestSimulatorResult = async (): Promise<TestResult | null> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return null
+
+  const { data, error } = await supabase
+    .from('test_results')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('is_completed', true)
+    .eq('type', 'stage2')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    console.error('fetchLatestSimulatorResult error:', error)
     return null
   }
 

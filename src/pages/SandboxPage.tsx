@@ -7,6 +7,7 @@ import { ArrowLeft, Send, Loader2, Clock, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { simulatorData } from '@/lib/simulatorData';
+import { supabase } from '@/lib/supabase';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -97,9 +98,13 @@ export default function SandboxPage() {
     
     setIsJudging(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch('/api/ai/judge', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
         body: JSON.stringify({ task, chatHistory: messages }),
       });
 

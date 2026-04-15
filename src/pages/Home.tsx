@@ -5,29 +5,34 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Brain, Target, TrendingUp, Award } from 'lucide-react';
-import { fetchCurrentUserProfile, fetchLatestUserResult, TestResult } from '@/lib/api';
+import { fetchCurrentUserProfile, fetchLatestUserResult, fetchLatestSimulatorResult, TestResult } from '@/lib/api';
 
 export default function Home() {
   const navigate = useNavigate();
   const [userName, setUserName] = useState('');
   const [latestResult, setLatestResult] = useState<TestResult | null>(null);
+  const [simulatorResult, setSimulatorResult] = useState<TestResult | null>(null);
 
   useEffect(() => {
     async function loadData() {
-      const [profile, result] = await Promise.all([
+      const [profile, result, simResult] = await Promise.all([
         fetchCurrentUserProfile(),
-        fetchLatestUserResult()
+        fetchLatestUserResult(),
+        fetchLatestSimulatorResult()
       ]);
       if (profile?.full_name) {
         setUserName(profile.full_name.split(' ')[0]); // first name only
       }
       setLatestResult(result);
+      setSimulatorResult(simResult);
     }
     loadData();
   }, []);
 
   const score = latestResult?.score ?? 0;
   const hasResult = !!latestResult;
+  const simScore = simulatorResult?.score ?? 0;
+  const hasSimResult = !!simulatorResult;
 
   return (
     <div className="space-y-4 font-sans antialiased overflow-x-hidden">
@@ -58,10 +63,12 @@ export default function Home() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <Target className="w-4 h-4 text-accent-foreground" />
-              <span className="text-xs font-bold uppercase tracking-widest text-accent-foreground/70">Цель</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-accent-foreground/70">Симулятор</span>
             </div>
-            <div className="text-3xl font-bold">Грейд 4</div>
-            <p className="text-xs text-muted-foreground font-medium mt-1">В процессе</p>
+            <div className="text-3xl font-bold">{hasSimResult ? `${simScore}%` : '—'}</div>
+            <p className="text-xs text-muted-foreground font-medium mt-1">
+              {hasSimResult ? 'Пройдено' : 'В процессе'}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -87,9 +94,11 @@ export default function Home() {
             <div className="space-y-1.5 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigate('/simulator')}>
               <div className="flex justify-between text-sm font-medium">
                 <span>Этап 2: Симулятор</span>
-                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">Доступно</span>
+                <span className={hasSimResult ? "text-green-500 font-bold" : "text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full"}>
+                  {hasSimResult ? '✓ Пройдено' : 'Доступно'}
+                </span>
               </div>
-              <Progress value={0} className="h-2" />
+              <Progress value={hasSimResult ? 100 : 0} className="h-2" />
             </div>
             <div className="space-y-1.5 opacity-40">
               <div className="flex justify-between text-sm text-muted-foreground">
