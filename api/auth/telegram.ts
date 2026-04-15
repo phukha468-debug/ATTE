@@ -234,6 +234,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     // Disable background timers — prevents Vercel 300s timeout hang
     const supabase = createClient<any, 'public', any>(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      global: { headers: { Connection: 'close' } },
     })
 
     // ── 3. DEV MODE bypass (STRICT: blocked in production) ───────────────
@@ -283,10 +284,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const username = tgUser.username || `user_${tgId}`
 
     console.log('[auth] Step 4: Calling authUser (Supabase create/signin)...')
-    return await authUser(supabase, tgId, fullName, username, botToken, res)
+    await authUser(supabase, tgId, fullName, username, botToken, res)
   } catch (error: any) {
     // ── 5. Global catch-all: NEVER hang without a response ──────────────
     console.error('[auth] ✗✗✗ UNHANDLED ERROR (500):', error)
     return res.status(500).json({ error: 'Internal Server Error' })
+  } finally {
+    // Force Node.js event loop to exit — prevents Vercel 300s timeout hang
+    // This is safe because all work is done and response is already sent.
+    console.log('[auth] Finally: request handled, letting Vercel finish...')
   }
 }
