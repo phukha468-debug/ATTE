@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -6,21 +7,35 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Brain, Target, TrendingUp, Award } from 'lucide-react';
 import { motion } from 'motion/react';
+import { supabase } from '@/lib/supabase';
+import { fetchCurrentUserProfile } from '@/lib/api';
 
 export default function Home() {
+  const navigate = useNavigate();
+  const [userName, setUserName] = useState('');
+
+  useEffect(() => {
+    async function loadProfile() {
+      const profile = await fetchCurrentUserProfile();
+      if (profile?.full_name) {
+        setUserName(profile.full_name.split(' ')[0]); // first name only
+      }
+    }
+    loadProfile();
+  }, []);
+
   return (
     <div className="space-y-6 relative">
       <div className="absolute -top-24 -left-24 w-64 h-64 bg-primary/5 rounded-full blur-3xl -z-10" />
       <div className="absolute top-1/2 -right-24 w-64 h-64 bg-accent/5 rounded-full blur-3xl -z-10" />
-      
+
       <header className="flex justify-between items-center pt-4">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight font-heading">Привет, Анна!</h1>
+          <h1 className="text-4xl font-bold tracking-tight font-heading">Привет, {userName || 'друг'}!</h1>
           <p className="text-muted-foreground mt-1">Твой прогресс в ИИ-аттестации</p>
         </div>
         <Avatar className="w-12 h-12 border-2 border-primary/20 shadow-sm">
-          <AvatarImage src="https://picsum.photos/seed/anna/200" />
-          <AvatarFallback>АС</AvatarFallback>
+          <AvatarFallback>{userName ? userName.charAt(0).toUpperCase() : '?'}</AvatarFallback>
         </Avatar>
       </header>
 
@@ -105,7 +120,10 @@ export default function Home() {
         </Card>
       </div>
 
-      <Button className="w-full py-6 text-lg font-semibold shadow-lg shadow-primary/20">
+      <Button
+        className="w-full py-6 text-lg font-semibold shadow-lg shadow-primary/20"
+        onClick={() => navigate('/tests')}
+      >
         Продолжить аттестацию
       </Button>
     </div>
