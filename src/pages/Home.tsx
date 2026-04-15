@@ -30,79 +30,86 @@ export default function Home() {
   const hasResult = !!latestResult;
 
   return (
-    <div className="space-y-3 font-sans antialiased overflow-x-hidden">
-      <header className="flex justify-between items-center py-2">
+    <div className="space-y-4 font-sans antialiased overflow-x-hidden">
+      <header className="flex justify-between items-center py-3">
         <div>
-          <h1 className="text-sm font-bold tracking-tight">Привет, {userName || 'друг'}!</h1>
-          <p className="text-[10px] text-muted-foreground">Прогресс в ИИ-аттестации</p>
+          <h1 className="text-xl font-bold tracking-tight">Привет, {userName || 'друг'}!</h1>
+          <p className="text-sm text-muted-foreground">Прогресс в ИИ-аттестации</p>
         </div>
-        <Avatar className="w-8 h-8 border border-primary/20 shadow-sm">
-          <AvatarFallback className="text-[10px]">{userName ? userName.charAt(0).toUpperCase() : '?'}</AvatarFallback>
+        <Avatar className="w-11 h-11 border border-primary/20 shadow-sm">
+          <AvatarFallback className="text-sm font-bold">{userName ? userName.charAt(0).toUpperCase() : '?'}</AvatarFallback>
         </Avatar>
       </header>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-3">
         <Card className="bg-primary/5 border-primary/10 shadow-none">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Brain className="w-3 h-3 text-primary" />
-              <span className="text-[8px] font-bold uppercase tracking-widest text-primary/70">Навыки</span>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Brain className="w-4 h-4 text-primary" />
+              <span className="text-xs font-bold uppercase tracking-widest text-primary/70">Навыки</span>
             </div>
-            <div className="text-xl font-bold">{hasResult ? `${score}%` : '—'}</div>
-            <p className="text-[8px] text-muted-foreground font-medium">
+            <div className="text-3xl font-bold">{hasResult ? `${score}%` : '—'}</div>
+            <p className="text-xs text-muted-foreground font-medium mt-1">
               {hasResult ? 'Результат теста' : 'Тест не пройден'}
             </p>
           </CardContent>
         </Card>
         <Card className="bg-accent/5 border-accent/10 shadow-none">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Target className="w-3 h-3 text-accent-foreground" />
-              <span className="text-[8px] font-bold uppercase tracking-widest text-accent-foreground/70">Цель</span>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Target className="w-4 h-4 text-accent-foreground" />
+              <span className="text-xs font-bold uppercase tracking-widest text-accent-foreground/70">Цель</span>
             </div>
-            <div className="text-xl font-bold">Грейд 4</div>
-            <p className="text-[8px] text-muted-foreground font-medium">В процессе</p>
+            <div className="text-3xl font-bold">Грейд 4</div>
+            <p className="text-xs text-muted-foreground font-medium mt-1">В процессе</p>
           </CardContent>
         </Card>
       </div>
 
       <Card className="shadow-none">
-        <CardHeader className="py-2 px-3">
-          <CardTitle className="text-[10px] font-bold uppercase flex items-center gap-1.5 text-muted-foreground tracking-wider">
-            <TrendingUp className="w-3 h-3" />
-            Прогресс
+        <CardHeader className="py-3 px-4">
+          <CardTitle className="text-xs font-bold uppercase flex items-center gap-2 text-muted-foreground tracking-wider">
+            <TrendingUp className="w-4 h-4" />
+            Путь развития
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-3 pt-0">
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <div className="flex justify-between text-[9px] font-medium">
+        <CardContent className="px-4 pb-4 pt-0">
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-sm font-medium">
                 <span>Этап 1: ИИ-Аттестация</span>
-                <span className={hasResult ? "text-green-500" : ""}>
-                  {hasResult ? 'Готово' : '0%'}
+                <span className={hasResult ? "text-green-500 font-bold" : ""}>
+                  {hasResult ? '✓ Готово' : '0%'}
                 </span>
               </div>
-              <Progress value={hasResult ? 100 : 0} className="h-1" />
+              <Progress value={hasResult ? 100 : 0} className="h-2" />
             </div>
-            <div className="space-y-1 opacity-50">
-              <div className="flex justify-between text-[9px] text-muted-foreground">
+            <div className="space-y-1.5 opacity-50">
+              <div className="flex justify-between text-sm text-muted-foreground">
                 <span>Этап 2: Симулятор</span>
-                <span>0%</span>
+                <span className="text-xs bg-muted px-2 py-0.5 rounded-full">Скоро</span>
               </div>
-              <Progress value={0} className="h-1" />
+              <Progress value={0} className="h-2" />
+            </div>
+            <div className="space-y-1.5 opacity-40">
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Этап 3: Микро-проекты</span>
+                <span className="text-xs bg-muted px-2 py-0.5 rounded-full">Скоро</span>
+              </div>
+              <Progress value={0} className="h-2" />
             </div>
           </div>
         </CardContent>
       </Card>
 
       <Card className="border-none shadow-none bg-accent/5">
-        <CardContent className="p-3 flex gap-2">
-          <div className="bg-primary/10 p-1.5 rounded-full h-fit">
-            <Award className="w-3 h-3 text-primary" />
+        <CardContent className="p-4 flex gap-3">
+          <div className="bg-primary/10 p-2 rounded-full h-fit">
+            <Award className="w-4 h-4 text-primary" />
           </div>
           <div>
-            <h3 className="text-[10px] font-bold">Улучши навыки</h3>
-            <p className="text-[9px] text-muted-foreground mt-0.5">
+            <h3 className="text-sm font-bold">Улучши навыки</h3>
+            <p className="text-xs text-muted-foreground mt-1">
               Изучи структуру промптов для улучшения результата.
             </p>
           </div>
@@ -110,7 +117,7 @@ export default function Home() {
       </Card>
 
       <Button
-        className="w-full py-4 text-xs font-bold shadow-none mt-2"
+        className="w-full py-5 text-sm font-bold shadow-none"
         onClick={() => navigate('/tests')}
       >
         К тестам

@@ -5,7 +5,12 @@
       "Bash(node:*)",
       "Bash(firebase\" \"C:\\\\atte\\\\package.json\")",
       "Bash(npm run:*)",
-      "Bash(ls C:/atte/.env*)"
+      "Bash(ls C:/atte/.env*)",
+      "Bash(ls tasks/done/024*)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(npx tsc *)"
     ]
   }
 }
