@@ -63,11 +63,13 @@ export default function Tests() {
   useEffect(() => {
     fetchQuestions()
       .then(qs => {
+        console.log('[tests] fetchQuestions returned:', qs.length, 'questions')
         if (qs.length > 0) {
           testStore.setQuestions(qs)
-          console.log(`✅ fetchQuestions: ${qs.length} questions loaded`)
+          console.log(`✅ fetchQuestions: ${qs.length} questions loaded, store updated`)
         } else {
-          setFetchError('Вопросы не найдены. Запустите: npm run seed')
+          console.warn('[tests] ⚠️ fetchQuestions returned 0 questions — DB may be empty')
+          setFetchError('Вопросы не найдены в базе данных. Обратитесь к администратору.')
         }
       })
       .catch((err: Error) => {
@@ -78,8 +80,13 @@ export default function Tests() {
   }, [])
 
   const startTest = (id: number) => {
+    if (loading) {
+      console.warn('[tests] startTest called while still loading')
+      return
+    }
     if (testStore.questions.length === 0) {
-      setFetchError('Вопросы ещё не загружены. Подождите или обновите страницу.')
+      console.error('[tests] startTest called with 0 questions in store')
+      setFetchError('Вопросы не загружены. Попробуйте обновить страницу.')
       return
     }
     setActiveStage(id)
