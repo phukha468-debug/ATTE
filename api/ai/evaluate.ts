@@ -19,6 +19,10 @@
 import { createClient } from '@supabase/supabase-js'
 import OpenAI from 'openai'
 
+export const config = {
+  runtime: 'edge',
+}
+
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 /** Strip markdown json fences from model response */
@@ -116,13 +120,13 @@ export default async function handler(req: Request): Promise<Response> {
 
     const totalMaxScore = questions.reduce((sum, q) => sum + (q.max_score || 4), 0)
 
-    const systemPrompt = `Ты HR-эксперт. Оцени ответы сотрудника. Правила:
-1. MCQ: правильный вариант = полный балл, иначе 0.
-2. Открытые: оценивай полноту и конкретность.
-3. score = round(набранные/${totalMaxScore}*100).
-4. feedback: 3 предложения на русском (сильные стороны, зоны роста, рекомендация).
-Ответь ТОЛЬКО валидным JSON без markdown:
-{"score":<0-100>,"feedback":"<текст>","category_scores":{"routine":0,"prompting":0,"limitations":0,"legal":0}}`
+    const systemPrompt = `HR-expert. Grade employee responses. Rules:
+1. MCQ: match = full score, mismatch = 0.
+2. Open: grade detail and relevance.
+3. Final score = round(earned/max*100).
+4. Feedback: 3 sentences in Russian (strengths, growth, advice).
+Return ONLY compressed JSON:
+{"score":0-100,"feedback":"str","category_scores":{"routine":0,"prompting":0,"limitations":0,"legal":0}}`
 
     const userPrompt = `Ответы сотрудника:${userAnswersBlock}`
 
