@@ -169,9 +169,9 @@ export default function SimulatorPage() {
 
             <Button 
               className="w-full py-6 text-sm font-bold shadow-lg shadow-primary/20"
-              disabled
+              onClick={() => navigate(`/sandbox/${selectedTask.id}`)}
             >
-              Перейти в Sandbox (В разработке)
+              Перейти в Sandbox
             </Button>
           </motion.div>
         )}

@@ -12,6 +12,7 @@ import Pricing from './pages/Pricing';
 import Profile from './pages/Profile';
 import Dashboard from './pages/Dashboard';
 import SimulatorPage from './pages/SimulatorPage';
+import SandboxPage from './pages/SandboxPage';
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
           <Route index element={<Home />} />
           <Route path="tests" element={<Tests />} />
           <Route path="simulator" element={<SimulatorPage />} />
+          <Route path="sandbox/:taskId" element={<SandboxPage />} />
           <Route path="reports" element={<Reports />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="pricing" element={<Pricing />} />
