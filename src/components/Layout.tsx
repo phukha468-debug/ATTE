@@ -123,8 +123,8 @@ export function Layout() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-24" data-role={userRole || ''}>
-      <main className="max-w-md mx-auto px-4 pt-6">
+    <div className="min-h-screen bg-background text-foreground pb-24 overflow-x-hidden" data-role={userRole || ''}>
+      <main className="max-w-md mx-auto px-4 pt-6 w-full">
         <AnimatePresence mode="wait">
           <motion.div
             initial={{ opacity: 0, y: 20 }}

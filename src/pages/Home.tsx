@@ -2,12 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Brain, Target, TrendingUp, Award } from 'lucide-react';
-import { motion } from 'motion/react';
-import { supabase } from '@/lib/supabase';
 import { fetchCurrentUserProfile, fetchLatestUserResult, TestResult } from '@/lib/api';
 
 export default function Home() {
@@ -33,103 +30,90 @@ export default function Home() {
   const hasResult = !!latestResult;
 
   return (
-    <div className="space-y-6 relative">
-      <div className="absolute -top-24 -left-24 w-64 h-64 bg-primary/5 rounded-full blur-3xl -z-10" />
-      <div className="absolute top-1/2 -right-24 w-64 h-64 bg-accent/5 rounded-full blur-3xl -z-10" />
-
-      <header className="flex justify-between items-center pt-4">
+    <div className="space-y-3 font-sans antialiased overflow-x-hidden">
+      <header className="flex justify-between items-center py-2">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight font-heading">Привет, {userName || 'друг'}!</h1>
-          <p className="text-muted-foreground mt-1">Твой прогресс в ИИ-аттестации</p>
+          <h1 className="text-sm font-bold tracking-tight">Привет, {userName || 'друг'}!</h1>
+          <p className="text-[10px] text-muted-foreground">Прогресс в ИИ-аттестации</p>
         </div>
-        <Avatar className="w-12 h-12 border-2 border-primary/20 shadow-sm">
-          <AvatarFallback>{userName ? userName.charAt(0).toUpperCase() : '?'}</AvatarFallback>
+        <Avatar className="w-8 h-8 border border-primary/20 shadow-sm">
+          <AvatarFallback className="text-[10px]">{userName ? userName.charAt(0).toUpperCase() : '?'}</AvatarFallback>
         </Avatar>
       </header>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Card className="bg-primary/5 border-primary/10 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="p-1.5 bg-primary/10 rounded-lg">
-                <Brain className="w-4 h-4 text-primary" />
-              </div>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-primary/70">Навыки</span>
+      <div className="grid grid-cols-2 gap-2">
+        <Card className="bg-primary/5 border-primary/10 shadow-none">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Brain className="w-3 h-3 text-primary" />
+              <span className="text-[8px] font-bold uppercase tracking-widest text-primary/70">Навыки</span>
             </div>
-            <div className="text-3xl font-bold">{hasResult ? `${score}%` : '—'}</div>
-            <p className="text-[10px] text-muted-foreground mt-1 font-medium">
-              {hasResult ? 'Последний результат' : 'Тест еще не пройден'}
+            <div className="text-xl font-bold">{hasResult ? `${score}%` : '—'}</div>
+            <p className="text-[8px] text-muted-foreground font-medium">
+              {hasResult ? 'Результат теста' : 'Тест не пройден'}
             </p>
           </CardContent>
         </Card>
-        <Card className="bg-accent/5 border-accent/10 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="p-1.5 bg-accent/10 rounded-lg">
-                <Target className="w-4 h-4 text-accent-foreground" />
-              </div>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-accent-foreground/70">Цель</span>
+        <Card className="bg-accent/5 border-accent/10 shadow-none">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Target className="w-3 h-3 text-accent-foreground" />
+              <span className="text-[8px] font-bold uppercase tracking-widest text-accent-foreground/70">Цель</span>
             </div>
-            <div className="text-3xl font-bold">Грейд 4</div>
-            <p className="text-[10px] text-muted-foreground mt-1 font-medium">Осталось 2 этапа</p>
+            <div className="text-xl font-bold">Грейд 4</div>
+            <p className="text-[8px] text-muted-foreground font-medium">В процессе</p>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" />
-            Общий прогресс
+      <Card className="shadow-none">
+        <CardHeader className="py-2 px-3">
+          <CardTitle className="text-[10px] font-bold uppercase flex items-center gap-1.5 text-muted-foreground tracking-wider">
+            <TrendingUp className="w-3 h-3" />
+            Прогресс
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
+        <CardContent className="p-3 pt-0">
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <div className="flex justify-between text-[9px] font-medium">
                 <span>Этап 1: ИИ-Аттестация</span>
-                <span className={hasResult ? "text-green-500 font-medium" : ""}>
-                  {hasResult ? 'Завершено' : '0%'}
+                <span className={hasResult ? "text-green-500" : ""}>
+                  {hasResult ? 'Готово' : '0%'}
                 </span>
               </div>
-              <Progress value={hasResult ? 100 : 0} className="h-2" />
+              <Progress value={hasResult ? 100 : 0} className="h-1" />
             </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Этап 2: ИИ-Симулятор (в разработке)</span>
+            <div className="space-y-1 opacity-50">
+              <div className="flex justify-between text-[9px] text-muted-foreground">
+                <span>Этап 2: Симулятор</span>
                 <span>0%</span>
               </div>
-              <Progress value={0} className="h-2 opacity-50" />
+              <Progress value={0} className="h-1" />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold">Рекомендации 66ai</h2>
-        <Card className="border-l-4 border-l-primary">
-          <CardContent className="py-4">
-            <div className="flex gap-3">
-              <div className="bg-primary/10 p-2 rounded-full h-fit">
-                <Award className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-sm font-medium">Улучши навыки промптинга</h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Твои результаты в симуляторе показывают, что стоит поработать над структурой ролевых инструкций.
-                </p>
-                <Button variant="link" className="p-0 h-auto text-xs mt-2">Пройти обучение →</Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="border-none shadow-none bg-accent/5">
+        <CardContent className="p-3 flex gap-2">
+          <div className="bg-primary/10 p-1.5 rounded-full h-fit">
+            <Award className="w-3 h-3 text-primary" />
+          </div>
+          <div>
+            <h3 className="text-[10px] font-bold">Улучши навыки</h3>
+            <p className="text-[9px] text-muted-foreground mt-0.5">
+              Изучи структуру промптов для улучшения результата.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       <Button
-        className="w-full py-6 text-lg font-semibold shadow-lg shadow-primary/20"
+        className="w-full py-4 text-xs font-bold shadow-none mt-2"
         onClick={() => navigate('/tests')}
       >
-        Продолжить аттестацию
+        К тестам
       </Button>
     </div>
   );

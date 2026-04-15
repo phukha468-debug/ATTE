@@ -142,40 +142,33 @@ export default function Tests() {
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col items-center space-y-6 py-8"
+        className="flex flex-col items-center space-y-4 py-4"
       >
-        <div className="bg-primary/10 p-6 rounded-full">
-          <Trophy className="w-16 h-16 text-primary" />
+        <div className="bg-primary/10 p-4 rounded-full">
+          <Trophy className="w-12 h-12 text-primary" />
         </div>
-        <div className="text-center space-y-1">
-          <h2 className="text-2xl font-bold font-heading">Аттестация завершена!</h2>
-          <p className="text-muted-foreground">Ваш уровень ИИ-компетенций</p>
+        <div className="text-center">
+          <h2 className="text-xl font-bold">Аттестация завершена!</h2>
         </div>
 
-        {/* Score circle */}
-        <div className="flex flex-col items-center gap-2">
-          <div className={cn('text-6xl font-black', scoreColor)}>{evalResult.score}</div>
-          <Badge className="text-sm px-4 py-1">{scoreLabel}</Badge>
+        {/* Score */}
+        <div className="flex flex-col items-center gap-1">
+          <div className={cn('text-5xl font-black', scoreColor)}>{evalResult.score}</div>
+          <Badge className="text-[10px] px-2 py-0">{scoreLabel}</Badge>
         </div>
 
         {/* Category scores */}
         {evalResult.category_scores && Object.keys(evalResult.category_scores).length > 0 && (
-          <Card className="w-full">
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-primary" />
-                По категориям
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+          <Card className="w-full shadow-none border-none bg-accent/5">
+            <CardContent className="p-3">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                 {Object.entries(evalResult.category_scores).map(([cat, val]) => (
-                  <div key={cat} className="flex justify-between items-center">
-                    <span className="text-sm capitalize text-muted-foreground">
+                  <div key={cat} className="flex justify-between items-center text-[11px] border-b border-border/50 pb-1">
+                    <span className="capitalize text-muted-foreground truncate mr-2">
                       {cat === 'routine' ? 'Рутина' :
                        cat === 'prompting' ? 'Промптинг' :
-                       cat === 'limitations' ? 'Ограничения ИИ' :
-                       cat === 'legal' ? 'Правовая грамотность' : cat}
+                       cat === 'limitations' ? 'Ограничения' :
+                       cat === 'legal' ? 'Право' : cat}
                     </span>
                     <span className={cn('font-bold', getScoreColor(Number(val)))}>{val}%</span>
                   </div>
@@ -186,25 +179,22 @@ export default function Tests() {
         )}
 
         {/* Feedback */}
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-primary" />
-              Обратная связь
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">
+        <Card className="w-full shadow-none border-none bg-accent/5">
+          <CardContent className="p-3">
+            <h3 className="text-[11px] font-bold uppercase text-muted-foreground mb-1 flex items-center gap-1">
+              <Sparkles className="w-3 h-3" /> Фидбек
+            </h3>
+            <p className="text-[11px] leading-snug">
               {evalResult.feedback}
             </p>
           </CardContent>
         </Card>
 
-        <Button className="w-full" onClick={() => {
+        <Button className="w-full py-4 text-xs font-bold" onClick={() => {
           testStore.resetTest()
           setEvalResult(null)
         }}>
-          Вернуться к списку этапов
+          К списку этапов
         </Button>
       </motion.div>
     )
