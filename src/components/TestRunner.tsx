@@ -117,7 +117,7 @@ export function TestRunner({ onComplete }: { onComplete: (answers: Record<string
                 )}>
                   {q.type === 'mcq' ? 'MCQ' : '✏️'}
                 </span>
-                <CardTitle className="text-lg sm:text-xl leading-snug font-heading">{q.text}</CardTitle>
+                <CardTitle className="text-lg leading-relaxed" style={{ fontFamily: 'system-ui, Arial, sans-serif', lineHeight: '1.6' }}>{q.text}</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
@@ -165,11 +165,6 @@ export function TestRunner({ onComplete }: { onComplete: (answers: Record<string
                 />
               )}
 
-              {q.llm_rubric && (
-                <p className="mt-4 text-xs text-muted-foreground italic">
-                  💡 Критерии оценки: {q.llm_rubric}
-                </p>
-              )}
             </CardContent>
           </Card>
         </motion.div>
