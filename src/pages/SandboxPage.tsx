@@ -77,13 +77,16 @@ export default function SandboxPage() {
         body: JSON.stringify({ messages: [...messages, userMessage] }),
       });
 
-      if (!response.ok) throw new Error('Failed to get AI response');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `Server error: ${response.status}`);
+      }
       
       const data = await response.json();
       setMessages(prev => [...prev, { role: 'assistant', content: data.content }]);
-    } catch (error) {
-      console.error('Chat error:', error);
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Ошибка связи с ИИ. Попробуйте еще раз.' }]);
+    } catch (error: any) {
+      console.error('[Sandbox] Chat error:', error);
+      setMessages(prev => [...prev, { role: 'assistant', content: `Ошибка: ${error.message}` }]);
     } finally {
       setIsLoading(false);
     }
@@ -100,12 +103,15 @@ export default function SandboxPage() {
         body: JSON.stringify({ task, chatHistory: messages }),
       });
 
-      if (!response.ok) throw new Error('Judging failed');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `Judging failed: ${response.status}`);
+      }
       const result = await response.json();
       navigate('/simulator/result', { state: result });
-    } catch (error) {
-      console.error('Judging error:', error);
-      alert('Ошибка при оценке. Попробуйте еще раз.');
+    } catch (error: any) {
+      console.error('[Sandbox] Judging error:', error);
+      alert(`Ошибка при оценке: ${error.message}`);
     } finally {
       setIsJudging(false);
     }

@@ -4,6 +4,16 @@ export const config = {
   runtime: 'edge',
 }
 
+// Initialize OpenAI outside the handler for potential instance reuse in Edge Runtime
+const getOpenAIClient = (apiKey: string) => new OpenAI({
+  baseURL: 'https://openrouter.ai/api/v1',
+  apiKey: apiKey,
+  defaultHeaders: {
+    'HTTP-Referer': 'https://atte-66ai.app',
+    'X-Title': '66AI Attestation Simulator',
+  },
+})
+
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 })
@@ -12,25 +22,18 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     const openRouterKey = process.env.OPENROUTER_API_KEY
     if (!openRouterKey) {
-      console.error('[simulate] Missing OPENROUTER_API_KEY')
-      return new Response(JSON.stringify({ error: 'Server configuration error' }), { status: 500 })
+      console.error('[simulate] Missing OPENROUTER_API_KEY in environment')
+      return new Response(JSON.stringify({ error: 'Server configuration error: Missing API Key' }), { status: 500 })
     }
 
     const body = await req.json()
     const { messages } = body
 
     if (!messages || !Array.isArray(messages)) {
-      return new Response(JSON.stringify({ error: 'Invalid messages' }), { status: 400 })
+      return new Response(JSON.stringify({ error: 'Invalid messages format' }), { status: 400 })
     }
 
-    const openai = new OpenAI({
-      baseURL: 'https://openrouter.ai/api/v1',
-      apiKey: openRouterKey,
-      defaultHeaders: {
-        'HTTP-Referer': 'https://atte-66ai.app',
-        'X-Title': '66AI Attestation Simulator',
-      },
-    })
+    const openai = getOpenAIClient(openRouterKey)
 
     const systemMessage = {
       role: 'system',
@@ -38,10 +41,13 @@ export default async function handler(req: Request): Promise<Response> {
     }
 
     const completion = await openai.chat.completions.create({
-      model: 'google/gemini-flash-1.5',
+      model: 'google/gemini-2.0-flash-001',
       messages: [systemMessage, ...messages],
       temperature: 0.7,
       max_tokens: 1000,
+    }).catch(e => {
+      console.error('[simulate] OpenRouter API Error:', e)
+      throw new Error(`OpenRouter error: ${e.message || 'Unknown error'}`)
     })
 
     const assistantMessage = completion.choices[0]?.message?.content || ''
@@ -52,6 +58,6 @@ export default async function handler(req: Request): Promise<Response> {
     )
   } catch (err: any) {
     console.error('[simulate] Unexpected error:', err)
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 })
+    return new Response(JSON.stringify({ error: err.message || 'Internal Server Error' }), { status: 500 })
   }
 }

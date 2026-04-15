@@ -4,6 +4,15 @@ export const config = {
   runtime: 'edge',
 }
 
+const getOpenAIClient = (apiKey: string) => new OpenAI({
+  baseURL: 'https://openrouter.ai/api/v1',
+  apiKey: apiKey,
+  defaultHeaders: {
+    'HTTP-Referer': 'https://atte-66ai.app',
+    'X-Title': '66AI LLM Judge',
+  },
+})
+
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 })
@@ -12,23 +21,18 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     const openRouterKey = process.env.OPENROUTER_API_KEY
     if (!openRouterKey) {
-      return new Response(JSON.stringify({ error: 'Server configuration error' }), { status: 500 })
+      console.error('[judge] Missing OPENROUTER_API_KEY')
+      return new Response(JSON.stringify({ error: 'Server configuration error: Missing API Key' }), { status: 500 })
     }
 
-    const { task, chatHistory } = await req.json()
+    const body = await req.json()
+    const { task, chatHistory } = body
 
     if (!task || !chatHistory || !Array.isArray(chatHistory)) {
       return new Response(JSON.stringify({ error: 'Missing task or chat history' }), { status: 400 })
     }
 
-    const openai = new OpenAI({
-      baseURL: 'https://openrouter.ai/api/v1',
-      apiKey: openRouterKey,
-      defaultHeaders: {
-        'HTTP-Referer': 'https://atte-66ai.app',
-        'X-Title': '66AI LLM Judge',
-      },
-    })
+    const openai = getOpenAIClient(openRouterKey)
 
     const systemPrompt = `Ты — строгий HR-эксперт по оценке ИИ-навыков. Проанализируй переписку пользователя с ИИ-ассистентом.
 Задача пользователя (Бриф):
@@ -59,6 +63,9 @@ export default async function handler(req: Request): Promise<Response> {
       ],
       temperature: 0.3,
       max_tokens: 1000,
+    }).catch(e => {
+      console.error('[judge] OpenRouter API Error:', e)
+      throw new Error(`OpenRouter error: ${e.message || 'Unknown error'}`)
     })
 
     const resultRaw = completion.choices[0]?.message?.content || '{}'
@@ -72,6 +79,6 @@ export default async function handler(req: Request): Promise<Response> {
     })
   } catch (err: any) {
     console.error('[judge] Error:', err)
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 })
+    return new Response(JSON.stringify({ error: err.message || 'Internal Server Error' }), { status: 500 })
   }
 }
