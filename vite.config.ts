@@ -7,6 +7,9 @@ export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
     plugins: [react(), tailwindcss()],
+    build: {
+      target: ['es2020', 'edge88', 'firefox78', 'chrome87', 'safari14'],
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),

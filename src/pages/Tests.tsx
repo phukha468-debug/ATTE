@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -23,7 +24,7 @@ const stages = [
     title: 'Этап 2: ИИ-Симулятор',
     description: 'Решение реальных рабочих задач с помощью LLM-Judge.',
     icon: Cpu,
-    status: 'locked' as const,
+    status: 'active' as const,
     score: '—',
   },
   {
@@ -52,6 +53,7 @@ function getScoreLabel(score: number): string {
 }
 
 export default function Tests() {
+  const navigate = useNavigate()
   const [activeStage, setActiveStage] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
@@ -80,6 +82,10 @@ export default function Tests() {
   }, [])
 
   const startTest = (id: number) => {
+    if (id === 2) {
+      navigate('/simulator')
+      return
+    }
     if (loading) {
       console.warn('[tests] startTest called while still loading')
       return

@@ -84,10 +84,10 @@ export default function Home() {
               </div>
               <Progress value={hasResult ? 100 : 0} className="h-2" />
             </div>
-            <div className="space-y-1.5 opacity-50">
-              <div className="flex justify-between text-sm text-muted-foreground">
+            <div className="space-y-1.5 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigate('/simulator')}>
+              <div className="flex justify-between text-sm font-medium">
                 <span>Этап 2: Симулятор</span>
-                <span className="text-xs bg-muted px-2 py-0.5 rounded-full">Скоро</span>
+                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">Доступно</span>
               </div>
               <Progress value={0} className="h-2" />
             </div>
