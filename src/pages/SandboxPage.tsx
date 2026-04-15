@@ -24,12 +24,22 @@ export default function SandboxPage() {
   const [isJudging, setIsJudging] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Найти данные задачи по ID
   const task = simulatorData
     .flatMap(d => d.roles)
     .flatMap(r => r.tasks)
     .find(t => t.id === taskId);
+
+  // Авто-ресайз текстового поля
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
+    }
+  }, [inputValue]);
 
   // Таймер
   useEffect(() => {
@@ -104,7 +114,7 @@ export default function SandboxPage() {
   if (!task) return <div className="p-8 text-center">Задача не найдена</div>;
 
   return (
-    <div className="fixed inset-0 bg-background flex flex-col font-sans overflow-hidden">
+    <div className="fixed inset-0 h-[100dvh] bg-background flex flex-col font-sans overflow-hidden">
       <AnimatePresence>
         {isJudging && (
           <motion.div
@@ -182,10 +192,11 @@ export default function SandboxPage() {
       </div>
 
       {/* Input Area */}
-      <div className="p-3 border-t bg-card shrink-0">
+      <div className="p-3 border-t bg-card shrink-0 pb-safe">
         <div className="max-w-md mx-auto flex gap-2 items-end">
           <div className="relative flex-1">
             <textarea
+              ref={textareaRef}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={(e) => {
@@ -195,15 +206,15 @@ export default function SandboxPage() {
                 }
               }}
               placeholder="Введите сообщение..."
-              className="w-full bg-accent/5 rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30 resize-none min-h-[44px] max-h-32 border border-accent/10"
+              className="w-full bg-accent/5 rounded-2xl px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30 resize-none min-h-[44px] border border-accent/10 block"
               rows={1}
             />
           </div>
           <Button 
             size="icon" 
-            className="rounded-full w-11 h-11 shrink-0 shadow-lg shadow-primary/20"
+            className="rounded-full w-11 h-11 shrink-0 shadow-lg shadow-primary/20 mb-0.5"
             onClick={handleSendMessage}
-            disabled={!inputValue.trim() || isLoading}
+            disabled={!inputValue.trim() || isLoading || isJudging}
           >
             <Send className="w-5 h-5" />
           </Button>

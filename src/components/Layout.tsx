@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { BottomNav } from './BottomNav';
+import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { loginWithTelegram } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
@@ -114,6 +115,8 @@ export function Layout() {
     return () => clearTimeout(authTimer)
   }, []);
 
+  const isNoNavPage = location.pathname.startsWith('/sandbox/') || location.pathname === '/simulator/result'
+
   if (authState === 'loading') {
     return <SplashScreen />;
   }
@@ -123,10 +126,17 @@ export function Layout() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-24 overflow-x-hidden" data-role={userRole || ''}>
-      <main className="max-w-md mx-auto px-4 pt-6 w-full">
+    <div className={cn(
+      "min-h-screen bg-background text-foreground overflow-x-hidden",
+      !isNoNavPage && "pb-24"
+    )} data-role={userRole || ''}>
+      <main className={cn(
+        "max-w-md mx-auto w-full",
+        !isNoNavPage && "px-4 pt-6"
+      )}>
         <AnimatePresence mode="wait">
           <motion.div
+            key={location.pathname}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -136,7 +146,7 @@ export function Layout() {
           </motion.div>
         </AnimatePresence>
       </main>
-      <BottomNav />
+      {!isNoNavPage && <BottomNav />}
     </div>
   );
 }
