@@ -56,7 +56,7 @@ export default async function handler(req: Request): Promise<Response> {
     const chatContent = chatHistory.map(m => `${m.role === 'user' ? 'Пользователь' : 'ИИ'}: ${m.content}`).join('\n\n')
 
     const completion = await openai.chat.completions.create({
-      model: 'anthropic/claude-3.5-sonnet',
+      model: 'anthropic/claude-3.7-sonnet',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `История переписки:\n${chatContent}` }
