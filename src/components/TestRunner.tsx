@@ -13,7 +13,8 @@ export function TestRunner({ onComplete }: { onComplete: (answers: Record<string
   const [openText, setOpenText] = useState('')
   const [isTransitioning, setIsTransitioning] = useState(false)
 
-  const { questions, currentIndex, currentQuestion } = store
+  const { questions, currentIndex } = store
+  const currentQuestion = questions[currentIndex]
 
   // Load stored answer when navigating
   useEffect(() => {
@@ -56,11 +57,12 @@ export function TestRunner({ onComplete }: { onComplete: (answers: Record<string
         store.nextQuestion()
       } else {
         store.completeTest()
-        const allAnswers = store.allAnswers.reduce<Record<string, { value: string | string[] | null; text?: string }>>(
+        const allAnswersArray = Object.values(store.answers)
+        const allAnswersMap = allAnswersArray.reduce<Record<string, { value: string | string[] | null; text?: string }>>(
           (acc, a) => { acc[a.question_id] = { value: a.value, text: a.text }; return acc }, {}
         )
-        console.log('✅ Test completed! Answers:', allAnswers)
-        onComplete(allAnswers)
+        console.log('✅ Test completed! Answers:', allAnswersMap)
+        onComplete(allAnswersMap)
       }
       setIsTransitioning(false)
     }, 300)
@@ -81,7 +83,8 @@ export function TestRunner({ onComplete }: { onComplete: (answers: Record<string
     )
   }
 
-  const progress = store.progress
+  const progress = questions.length === 0 ? 0 : ((currentIndex + 1) / questions.length) * 100
+  const answeredCount = Object.keys(store.answers).length
   const q = currentQuestion
   const isLast = currentIndex === questions.length - 1
 
@@ -91,7 +94,7 @@ export function TestRunner({ onComplete }: { onComplete: (answers: Record<string
       <div className="space-y-2">
         <div className="flex justify-between text-xs font-medium text-muted-foreground">
           <span>Вопрос {currentIndex + 1} из {questions.length}</span>
-          <span>{Math.round(progress)}% · Отвечено {store.answeredCount}/{questions.length}</span>
+          <span>{Math.round(progress)}% · Отвечено {answeredCount}/{questions.length}</span>
         </div>
         <Progress value={progress} className="h-2" />
       </div>

@@ -24,12 +24,6 @@ interface TestState {
   getAnswer: (questionId: string) => Answer | undefined
   completeTest: () => void
   resetTest: () => void
-
-  // Computed helpers (getters in implementation, plain props in interface)
-  currentQuestion: Question | undefined
-  progress: number               // 0-100
-  answeredCount: number
-  allAnswers: Answer[]
 }
 
 export const useTestStore = create<TestState>()(
@@ -81,25 +75,6 @@ export const useTestStore = create<TestState>()(
       completeTest: () => set({ isCompleted: true }),
 
       resetTest: () => set({ questions: [], currentIndex: 0, answers: {}, isCompleted: false }),
-
-      get currentQuestion() {
-        const { questions, currentIndex } = get()
-        return questions[currentIndex]
-      },
-
-      get progress() {
-        const { questions, currentIndex } = get()
-        if (questions.length === 0) return 0
-        return ((currentIndex + 1) / questions.length) * 100
-      },
-
-      get answeredCount() {
-        return Object.keys(get().answers).length
-      },
-
-      get allAnswers() {
-        return Object.values(get().answers)
-      },
     }),
     {
       name: 'test-store',  // localStorage key
