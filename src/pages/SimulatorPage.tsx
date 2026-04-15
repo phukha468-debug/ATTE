@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +10,7 @@ import { simulatorData, Direction, Role, SimulatorTask } from '@/lib/simulatorDa
 type Step = 'direction' | 'role' | 'brief';
 
 export default function SimulatorPage() {
+  const navigate = useNavigate();
   const [step, setStep] = useState<Step>('direction');
   const [selectedDirection, setSelectedDirection] = useState<Direction | null>(null);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
@@ -171,7 +173,7 @@ export default function SimulatorPage() {
               className="w-full py-6 text-sm font-bold shadow-lg shadow-primary/20"
               onClick={() => navigate(`/sandbox/${selectedTask.id}`)}
             >
-              Перейти в Sandbox
+              Начать экзамен
             </Button>
           </motion.div>
         )}
