@@ -8,21 +8,29 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Brain, Target, TrendingUp, Award } from 'lucide-react';
 import { motion } from 'motion/react';
 import { supabase } from '@/lib/supabase';
-import { fetchCurrentUserProfile } from '@/lib/api';
+import { fetchCurrentUserProfile, fetchLatestUserResult, TestResult } from '@/lib/api';
 
 export default function Home() {
   const navigate = useNavigate();
   const [userName, setUserName] = useState('');
+  const [latestResult, setLatestResult] = useState<TestResult | null>(null);
 
   useEffect(() => {
-    async function loadProfile() {
-      const profile = await fetchCurrentUserProfile();
+    async function loadData() {
+      const [profile, result] = await Promise.all([
+        fetchCurrentUserProfile(),
+        fetchLatestUserResult()
+      ]);
       if (profile?.full_name) {
         setUserName(profile.full_name.split(' ')[0]); // first name only
       }
+      setLatestResult(result);
     }
-    loadProfile();
+    loadData();
   }, []);
+
+  const score = latestResult?.score ?? 0;
+  const hasResult = !!latestResult;
 
   return (
     <div className="space-y-6 relative">
@@ -48,8 +56,10 @@ export default function Home() {
               </div>
               <span className="text-[10px] font-bold uppercase tracking-widest text-primary/70">Навыки</span>
             </div>
-            <div className="text-3xl font-bold">78%</div>
-            <p className="text-[10px] text-muted-foreground mt-1 font-medium">+5% за неделю</p>
+            <div className="text-3xl font-bold">{hasResult ? `${score}%` : '—'}</div>
+            <p className="text-[10px] text-muted-foreground mt-1 font-medium">
+              {hasResult ? 'Последний результат' : 'Тест еще не пройден'}
+            </p>
           </CardContent>
         </Card>
         <Card className="bg-accent/5 border-accent/10 shadow-sm hover:shadow-md transition-shadow">
@@ -77,21 +87,16 @@ export default function Home() {
           <div className="space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between text-xs">
-                <span>Этап 1: Базовые знания</span>
-                <span className="text-green-500 font-medium">Завершено</span>
+                <span>Этап 1: ИИ-Аттестация</span>
+                <span className={hasResult ? "text-green-500 font-medium" : ""}>
+                  {hasResult ? 'Завершено' : '0%'}
+                </span>
               </div>
-              <Progress value={100} className="h-2" />
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <span>Этап 2: ИИ-Симулятор</span>
-                <span>65%</span>
-              </div>
-              <Progress value={65} className="h-2" />
+              <Progress value={hasResult ? 100 : 0} className="h-2" />
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Этап 3: Микро-проект</span>
+                <span>Этап 2: ИИ-Симулятор (в разработке)</span>
                 <span>0%</span>
               </div>
               <Progress value={0} className="h-2 opacity-50" />

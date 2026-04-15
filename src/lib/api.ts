@@ -127,3 +127,30 @@ export const fetchCurrentUserProfile = async () => {
 
   return data
 }
+
+/**
+ * Получить последний завершенный результат текущего пользователя.
+ */
+export const fetchLatestUserResult = async (): Promise<TestResult | null> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return null
+
+  const { data, error } = await supabase
+    .from('test_results')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('is_completed', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    console.error('fetchLatestUserResult error:', error)
+    return null
+  }
+
+  return data
+}
