@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { loginWithTelegram } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
+import { useAppStore } from '@/store/appStore';
 import { fetchCurrentUserProfile } from '@/lib/api';
 
 function SplashScreen() {
