@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { loginWithTelegram } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/appStore';
-import { fetchCurrentUserProfile } from '@/lib/api';
 
 function SplashScreen() {
   return (
@@ -107,6 +106,7 @@ export function Layout() {
   }, [loadAppData, navigate, location.pathname]);
 
   const userRole = userProfile?.role || ''
+  const isNoNavPage = location.pathname.startsWith('/sandbox/') || location.pathname === '/simulator/result'
 
   if (authState === 'loading') {
     return <SplashScreen />;
