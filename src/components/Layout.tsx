@@ -48,9 +48,9 @@ function ErrorScreen({ message }: { message: string }) {
 export function Layout() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { loadAppData, userProfile } = useAppStore()
   const [authState, setAuthState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState('');
-  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     // 8-second timeout guard to prevent infinite splash screen
@@ -71,35 +71,25 @@ export function Layout() {
           console.log('[auth-debug] 2c. loginWithTelegram completed')
         }
 
-        // Fetch user profile for role-based routing
-        console.log('[auth-debug] 3. Fetching profile...')
-        let profile = null
-        try {
-          profile = await fetchCurrentUserProfile()
-          console.log('[auth-debug] 3b. Profile result:', profile ? `role=${profile.role}` : 'null')
-        } catch (profileErr: any) {
-          console.error('[auth-debug] 3c. Profile fetch error (non-fatal):', profileErr.message)
-          profile = { role: 'employee' } // fallback — don't block login
-        }
+        // Load all app data (including profile) through store
+        console.log('[auth-debug] 3. Loading app data...')
+        await loadAppData()
+        
+        const profile = useAppStore.getState().userProfile
+        console.log('[auth-debug] 3b. Profile loaded:', profile ? `role=${profile.role}` : 'null')
 
         if (profile) {
-          setUserRole(profile.role)
-
-          // Если менеджер/админ зашёл на главную — редирект на дашборд
-          // Если employee пытается зайти на дашборд — редирект на tests
+          // Role-based routing logic
           const isManager = profile.role === 'manager' || profile.role === 'admin'
           const path = location.pathname
 
           if (isManager && path === '/') {
-            console.log('[auth-debug] 4. Redirecting manager to /dashboard')
             navigate('/dashboard', { replace: true })
           } else if (!isManager && path === '/dashboard') {
-            console.log('[auth-debug] 4. Redirecting employee to /tests')
             navigate('/tests', { replace: true })
           }
         }
 
-        console.log('[auth-debug] 5. Setting authState = ready')
         setAuthState('ready')
       } catch (err: any) {
         console.error('[auth-debug] ✗ Auth initialization error:', err)
@@ -113,9 +103,9 @@ export function Layout() {
     initAuth()
 
     return () => clearTimeout(authTimer)
-  }, []);
+  }, [loadAppData, navigate, location.pathname]);
 
-  const isNoNavPage = location.pathname.startsWith('/sandbox/') || location.pathname === '/simulator/result'
+  const userRole = userProfile?.role || ''
 
   if (authState === 'loading') {
     return <SplashScreen />;
@@ -137,10 +127,10 @@ export function Layout() {
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
           >
             <Outlet />
           </motion.div>

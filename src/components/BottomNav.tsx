@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Home, ClipboardCheck, BarChart3, User, CreditCard, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { fetchCurrentUserProfile } from '@/lib/api';
+import { useAppStore } from '@/store/appStore';
 
 const employeeNavItems = [
   { icon: Home, label: 'Главная', path: '/' },
@@ -21,11 +20,8 @@ const managerNavItems = [
 ];
 
 export function BottomNav() {
-  const [role, setRole] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchCurrentUserProfile().then(p => setRole(p?.role || null))
-  }, [])
+  const { userProfile } = useAppStore();
+  const role = userProfile?.role;
 
   const navItems = role === 'manager' || role === 'admin' ? managerNavItems : employeeNavItems;
 

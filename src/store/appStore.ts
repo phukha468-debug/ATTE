@@ -26,7 +26,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   latestResult: null,
   simulatorResult: null,
   stage3Result: null,
-  isLoading: false,
+  isLoading: true, // Start with true to show skeletons while App is initializing
   isLoaded: false,
   error: null,
 

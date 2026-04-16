@@ -16,16 +16,8 @@ import SandboxPage from './pages/SandboxPage';
 import SimulatorResultPage from './pages/SimulatorResultPage';
 import Stage3Page from './pages/Stage3Page';
 import ManagerDashboard from './pages/ManagerDashboard';
-import { useAppStore } from './store/appStore';
-import { useEffect } from 'react';
 
 export default function App() {
-  const loadAppData = useAppStore(state => state.loadAppData);
-
-  useEffect(() => {
-    loadAppData();
-  }, [loadAppData]);
-
   return (
     <BrowserRouter>
       <Routes>

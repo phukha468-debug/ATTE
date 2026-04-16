@@ -17,7 +17,8 @@ import {
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { cn } from '@/lib/utils'
-import { fetchCompanyResults, fetchCurrentUserProfile, type TestResult } from '@/lib/api'
+import { fetchCompanyResults, type TestResult } from '@/lib/api'
+import { useAppStore } from '@/store/appStore'
 
 /** Цвет по score */
 function getScoreBadge(score: number | null): { label: string; variant: string } {
@@ -35,30 +36,23 @@ function formatDate(dateStr: string): string {
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const { userProfile } = useAppStore()
   const [results, setResults] = useState<TestResult[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [userRole, setUserRole] = useState<string | null>(null)
   const [selectedResult, setSelectedResult] = useState<TestResult | null>(null)
 
   useEffect(() => {
     async function init() {
+      if (!userProfile) return
+
+      // employee не имеет доступа к дашборду
+      if (userProfile.role === 'employee') {
+        navigate('/tests', { replace: true })
+        return
+      }
+
       try {
-        const profile = await fetchCurrentUserProfile()
-        if (!profile) {
-          setError('Профиль не найден')
-          setLoading(false)
-          return
-        }
-
-        setUserRole(profile.role)
-
-        // employee не имеет доступа к дашборду
-        if (profile.role === 'employee') {
-          navigate('/tests', { replace: true })
-          return
-        }
-
         const data = await fetchCompanyResults()
         setResults(data)
       } catch (err: any) {
@@ -68,7 +62,9 @@ export default function Dashboard() {
       }
     }
     init()
-  }, [navigate])
+  }, [navigate, userProfile])
+
+  const userRole = userProfile?.role || ''
 
   // ── Computed stats ──
   const totalCompleted = results.filter(r => r.is_completed).length
@@ -76,7 +72,7 @@ export default function Dashboard() {
     ? Math.round(results.reduce((sum, r) => sum + (r.score || 0), 0) / results.length)
     : 0
 
-  if (loading) {
+  if (loading && !error) {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-4">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
