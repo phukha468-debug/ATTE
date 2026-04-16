@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Brain, Target, TrendingUp, Award, BarChart3, ChevronRight } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const navigate = useNavigate();
