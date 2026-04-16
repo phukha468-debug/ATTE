@@ -55,22 +55,17 @@ export default function SimulatorPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="grid grid-cols-1 gap-3"
+            className="grid grid-cols-2 gap-2"
           >
-            <h2 className="text-sm font-bold px-1">Выберите направление</h2>
+            <h2 className="text-sm font-bold px-1 col-span-2">Выберите направление</h2>
             {simulatorData.map((dir) => (
               <Card 
                 key={dir.id} 
-                className="cursor-pointer hover:bg-accent/5 transition-colors border-none bg-card shadow-sm"
+                className="cursor-pointer hover:bg-accent/5 transition-colors border-none bg-card shadow-sm flex flex-col items-center justify-center p-3 text-center gap-2"
                 onClick={() => handleSelectDirection(dir)}
               >
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{dir.icon}</span>
-                    <span className="font-bold text-sm">{dir.title}</span>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </CardContent>
+                <span className="text-3xl">{dir.icon}</span>
+                <span className="font-bold text-[11px] leading-tight">{dir.title}</span>
               </Card>
             ))}
           </motion.div>
@@ -87,20 +82,19 @@ export default function SimulatorPage() {
             <h2 className="text-sm font-bold px-1 flex items-center gap-2">
               <span className="text-muted-foreground">Направление:</span> {selectedDirection.title}
             </h2>
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 gap-2">
               {selectedDirection.roles.map((role) => (
                 <Card 
                   key={role.id} 
                   className="cursor-pointer hover:bg-accent/5 transition-colors border-none bg-card shadow-sm"
                   onClick={() => handleSelectRole(role)}
                 >
-                  <CardHeader className="p-4 pb-2">
-                    <CardTitle className="text-sm font-bold">{role.title}</CardTitle>
-                    <CardDescription className="text-[10px]">{role.description}</CardDescription>
+                  <CardHeader className="p-3 pb-1">
+                    <CardTitle className="text-xs font-bold">{role.title}</CardTitle>
                   </CardHeader>
-                  <CardContent className="p-4 pt-0 flex justify-between items-center">
-                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
-                      {role.tasks.length} Задач доступно
+                  <CardContent className="p-3 pt-0 flex justify-between items-center">
+                    <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">
+                      {role.tasks.length > 0 ? `${role.tasks.length} Задач доступно` : 'В разработке'}
                     </span>
                     <ChevronRight className="w-4 h-4 text-muted-foreground" />
                   </CardContent>
@@ -110,7 +104,7 @@ export default function SimulatorPage() {
           </motion.div>
         )}
 
-        {step === 'brief' && selectedTask && (
+        {step === 'brief' && selectedRole && (
           <motion.div
             key="brief"
             initial={{ opacity: 0, scale: 0.95 }}
@@ -118,63 +112,81 @@ export default function SimulatorPage() {
             exit={{ opacity: 0, scale: 0.95 }}
             className="space-y-4"
           >
-            <Card className="border-none bg-card shadow-md overflow-hidden">
-              <CardHeader className="bg-primary/5 pb-4">
-                <div className="flex justify-between items-start mb-2">
-                  <Badge variant="outline" className="text-[8px] font-black uppercase tracking-tighter bg-background">
-                    {selectedTask.level}
-                  </Badge>
-                  <div className="flex items-center gap-1 text-primary">
-                    <Clock className="w-3 h-3" />
-                    <span className="text-[10px] font-bold">{selectedTask.benchmarkMinutes} мин.</span>
-                  </div>
-                </div>
-                <CardTitle className="text-base font-bold flex items-center gap-2">
-                   Ваша задача
-                </CardTitle>
-                <CardDescription className="text-[10px] font-medium leading-relaxed">
-                   Роль: {selectedRole?.title}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 space-y-4">
-                <div className="space-y-1">
-                  <h4 className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-1.5">
-                    <Info className="w-3 h-3" /> Контекст
-                  </h4>
-                  <p className="text-xs leading-relaxed">{selectedTask.context}</p>
+            {selectedTask ? (
+              <>
+                <Card className="border-none bg-card shadow-md overflow-hidden">
+                  <CardHeader className="bg-primary/5 pb-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <Badge variant="outline" className="text-[8px] font-black uppercase tracking-tighter bg-background">
+                        {selectedTask.level}
+                      </Badge>
+                      <div className="flex items-center gap-1 text-primary">
+                        <Clock className="w-3 h-3" />
+                        <span className="text-[10px] font-bold">{selectedTask.benchmarkMinutes} мин.</span>
+                      </div>
+                    </div>
+                    <CardTitle className="text-base font-bold flex items-center gap-2">
+                       Ваша задача
+                    </CardTitle>
+                    <CardDescription className="text-[10px] font-medium leading-relaxed">
+                       Роль: {selectedRole?.title}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-4 space-y-4">
+                    <div className="space-y-1">
+                      <h4 className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-1.5">
+                        <Info className="w-3 h-3" /> Контекст
+                      </h4>
+                      <p className="text-xs leading-relaxed">{selectedTask.context}</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <h4 className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-1.5">
+                        <Target className="w-3 h-3" /> Задание
+                      </h4>
+                      <p className="text-xs font-bold leading-relaxed">{selectedTask.objective}</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <h4 className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-1.5">
+                        <Briefcase className="w-3 h-3" /> Формат результата
+                      </h4>
+                      <p className="text-xs leading-relaxed italic">{selectedTask.format}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="p-3 bg-accent/5 rounded-lg border border-accent/10 flex gap-3 items-center">
+                   <div className="p-2 bg-accent/10 rounded-full h-fit">
+                      <Info className="w-4 h-4 text-accent-foreground" />
+                   </div>
+                   <p className="text-[10px] text-muted-foreground leading-snug">
+                      Для решения этой задачи используйте любые инструменты ИИ. Ваша цель — сэкономить время, сохранив качество.
+                   </p>
                 </div>
 
-                <div className="space-y-1">
-                  <h4 className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-1.5">
-                    <Target className="w-3 h-3" /> Задание
-                  </h4>
-                  <p className="text-xs font-bold leading-relaxed">{selectedTask.objective}</p>
+                <Button 
+                  className="w-full py-6 text-sm font-bold shadow-lg shadow-primary/20"
+                  onClick={() => navigate(`/sandbox/${selectedTask.id}`)}
+                >
+                  Начать экзамен
+                </Button>
+              </>
+            ) : (
+              <div className="py-12 px-6 text-center space-y-4">
+                <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto">
+                  <Clock className="w-8 h-8 text-muted-foreground" />
                 </div>
-
-                <div className="space-y-1">
-                  <h4 className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-1.5">
-                    <Briefcase className="w-3 h-3" /> Формат результата
-                  </h4>
-                  <p className="text-xs leading-relaxed italic">{selectedTask.format}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="p-3 bg-accent/5 rounded-lg border border-accent/10 flex gap-3 items-center">
-               <div className="p-2 bg-accent/10 rounded-full h-fit">
-                  <Info className="w-4 h-4 text-accent-foreground" />
-               </div>
-               <p className="text-[10px] text-muted-foreground leading-snug">
-                  Для решения этой задачи используйте любые инструменты ИИ. Ваша цель — сэкономить время, сохранив качество.
-               </p>
-            </div>
-
-            <Button 
-              className="w-full py-6 text-sm font-bold shadow-lg shadow-primary/20"
-              onClick={() => navigate(`/sandbox/${selectedTask.id}`)}
-            >
-              Начать экзамен
-            </Button>
+                <h2 className="text-lg font-bold">Задания в разработке</h2>
+                <p className="text-sm text-muted-foreground">
+                  Задания для роли <strong>{selectedRole.title}</strong> находятся в разработке. 
+                  Выберите другую роль или попробуйте базовый тест в другом направлении.
+                </p>
+                <Button variant="outline" onClick={goBack} className="mt-4">
+                  Вернуться к выбору
+                </Button>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

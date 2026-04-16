@@ -19,7 +19,7 @@ export interface Role {
 export interface Direction {
   id: string;
   title: string;
-  icon: string; // Lucide icon name or simple emoji
+  icon: string; // Simple emoji
   roles: Role[];
 }
 
@@ -30,9 +30,9 @@ export const simulatorData: Direction[] = [
     icon: '💼',
     roles: [
       {
-        id: 'sales-manager',
-        title: 'Менеджер по продажам',
-        description: 'Работа с холодными лидами и возражениями.',
+        id: 'sales-b2b',
+        title: 'Менеджер B2B',
+        description: 'Оптовые продажи и работа с корпоративными клиентами.',
         tasks: [
           {
             id: 'task-1',
@@ -43,29 +43,10 @@ export const simulatorData: Direction[] = [
             benchmarkMinutes: 45
           }
         ]
-      }
-    ]
-  },
-  {
-    id: 'hr',
-    title: 'HR',
-    icon: '👥',
-    roles: [
-      {
-        id: 'recruiter',
-        title: 'Рекрутер',
-        description: 'Поиск и оценка талантов.',
-        tasks: [
-          {
-            id: 'task-2',
-            level: 'basic',
-            context: 'Нужно найти Senior Python разработчика на сложный проект в финтех.',
-            objective: 'Создать привлекательное описание вакансии и составить список из 5 нестандартных вопросов для проверки soft-skills.',
-            format: 'Описание вакансии + список вопросов',
-            benchmarkMinutes: 60
-          }
-        ]
-      }
+      },
+      { id: 'sales-b2c', title: 'Менеджер B2C', description: 'Работа с частными клиентами и розничными продажами.', tasks: [] },
+      { id: 'sales-account', title: 'Аккаунт-менеджер', description: 'Поддержание и развитие отношений с текущими клиентами.', tasks: [] },
+      { id: 'sales-rop', title: 'РОП', description: 'Руководитель отдела продаж: управление и стратегия.', tasks: [] }
     ]
   },
   {
@@ -73,8 +54,9 @@ export const simulatorData: Direction[] = [
     title: 'Маркетинг',
     icon: '📢',
     roles: [
+      { id: 'mark-digital', title: 'Digital-маркетолог', description: 'Управление рекламными кампаниями в сети.', tasks: [] },
       {
-        id: 'content-manager',
+        id: 'mark-content',
         title: 'Контент-менеджер',
         description: 'Создание и дистрибуция контента.',
         tasks: [
@@ -87,7 +69,100 @@ export const simulatorData: Direction[] = [
             benchmarkMinutes: 120
           }
         ]
-      }
+      },
+      { id: 'mark-smm', title: 'SMM', description: 'Продвижение бренда в социальных сетях.', tasks: [] },
+      { id: 'mark-seo', title: 'SEO', description: 'Поисковая оптимизация и работа с трафиком.', tasks: [] }
+    ]
+  },
+  {
+    id: 'hr',
+    title: 'HR',
+    icon: '👥',
+    roles: [
+      {
+        id: 'hr-recruiter',
+        title: 'HR-менеджер/рекрутер',
+        description: 'Поиск и оценка талантов.',
+        tasks: [
+          {
+            id: 'task-2',
+            level: 'basic',
+            context: 'Нужно найти Senior Python разработчика на сложный проект в финтех.',
+            objective: 'Создать привлекательное описание вакансии и составить список из 5 нестандартных вопросов для проверки soft-skills.',
+            format: 'Описание вакансии + список вопросов',
+            benchmarkMinutes: 60
+          }
+        ]
+      },
+      { id: 'hr-generalist', title: 'HR-generalist', description: 'Универсальный специалист по управлению персоналом.', tasks: [] }
+    ]
+  },
+  {
+    id: 'finance',
+    title: 'Финансы и бухгалтерия',
+    icon: '📊',
+    roles: [
+      { id: 'fin-acc', title: 'Бухгалтер', description: 'Учет операций и налоговая отчетность.', tasks: [] },
+      { id: 'fin-analyst', title: 'Финансовый аналитик', description: 'Анализ финансовых показателей и планирование.', tasks: [] }
+    ]
+  },
+  {
+    id: 'support',
+    title: 'Клиентская поддержка',
+    icon: '🎧',
+    roles: [
+      { id: 'supp-spec', title: 'Специалист поддержки', description: 'Помощь клиентам в решении текущих вопросов.', tasks: [] },
+      { id: 'supp-claims', title: 'Менеджер по рекламациям', description: 'Работа с претензиями и сложными случаями.', tasks: [] }
+    ]
+  },
+  {
+    id: 'ops',
+    title: 'Операции и администрация',
+    icon: '🏢',
+    roles: [
+      { id: 'ops-office', title: 'Офис-менеджер', description: 'Обеспечение жизнедеятельности офиса.', tasks: [] },
+      { id: 'ops-manager', title: 'Операционный менеджер', description: 'Оптимизация внутренних процессов компании.', tasks: [] }
+    ]
+  },
+  {
+    id: 'legal',
+    title: 'Юристы',
+    icon: '⚖️',
+    roles: [
+      { id: 'legal-spec', title: 'Юрист/юрисконсульт', description: 'Юридическое сопровождение деятельности.', tasks: [] }
+    ]
+  },
+  {
+    id: 'procurement',
+    title: 'Закупки',
+    icon: '🛒',
+    roles: [
+      { id: 'proc-manager', title: 'Менеджер по закупкам', description: 'Поиск поставщиков и управление закупками.', tasks: [] }
+    ]
+  },
+  {
+    id: 'it',
+    title: 'IT',
+    icon: '💻',
+    roles: [
+      { id: 'it-sysadmin', title: 'Сисадмин/поддержка', description: 'Поддержка IT-инфраструктуры.', tasks: [] },
+      { id: 'it-data', title: 'Аналитик данных', description: 'Сбор и интерпретация данных.', tasks: [] }
+    ]
+  },
+  {
+    id: 'pm',
+    title: 'Проектное управление',
+    icon: '📅',
+    roles: [
+      { id: 'pm-manager', title: 'Проектный менеджер', description: 'Управление сроками, ресурсами и качеством проектов.', tasks: [] }
+    ]
+  },
+  {
+    id: 'docs',
+    title: 'Документооборот',
+    icon: '📄',
+    roles: [
+      { id: 'docs-spec', title: 'Специалист по документообороту', description: 'Организация и контроль движения документов.', tasks: [] }
     ]
   }
 ];

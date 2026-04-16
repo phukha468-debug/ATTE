@@ -99,13 +99,27 @@ export default function SandboxPage() {
     setIsJudging(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      
+      // Get user profile to pass IDs explicitly as requested
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: profile } = await supabase
+        .from('users')
+        .select('company_id')
+        .eq('id', user?.id)
+        .single();
+
       const response = await fetch('/api/ai/judge', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.access_token}`
         },
-        body: JSON.stringify({ task, chatHistory: messages }),
+        body: JSON.stringify({ 
+          task, 
+          chatHistory: messages,
+          userId: user?.id,
+          companyId: profile?.company_id
+        }),
       });
 
       if (!response.ok) {

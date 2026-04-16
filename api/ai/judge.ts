@@ -54,7 +54,7 @@ export default async function handler(req: Request): Promise<Response> {
 
     // ── Step 2: Parse body ──
     const body = await req.json()
-    const { task, chatHistory } = body
+    const { task, chatHistory, userId: payloadUserId, companyId: payloadCompanyId } = body
 
     if (!task || !chatHistory || !Array.isArray(chatHistory)) {
       return new Response(JSON.stringify({ error: 'Missing task or chat history' }), { status: 400 })
@@ -109,35 +109,61 @@ export default async function handler(req: Request): Promise<Response> {
       return new Response(JSON.stringify({ error: 'Failed to parse AI response' }), { status: 500 })
     }
 
-    // ── Step 3: Fetch user's company_id ──
-    const supabase = createClient(supabaseUrl, serviceRoleKey)
-    const { data: userProfile } = await supabase
-      .from('users')
-      .select('company_id')
-      .eq('id', userId)
-      .single()
+    // ── Step 3: Determine user and company ──
+    const effectiveUserId = payloadUserId || userId
+    let effectiveCompanyId = payloadCompanyId
 
-    const companyId = userProfile?.company_id || null
+    const supabase = createClient(supabaseUrl, serviceRoleKey)
+
+    if (!effectiveCompanyId) {
+      const { data: userProfile } = await supabase
+        .from('users')
+        .select('company_id')
+        .eq('id', effectiveUserId)
+        .single()
+      effectiveCompanyId = userProfile?.company_id || null
+    }
 
     // ── Step 4: Save to test_results as Stage 2 ──
-    const { error: insertError } = await supabase.from('test_results').insert({
-      user_id: userId,
-      company_id: companyId,
-      type: 'stage2',
-      answers: chatHistory,
-      llm_feedback: {
-        score: llmJson.score,
-        feedback: llmJson.feedback,
-        time_saved_multiplier: llmJson.time_saved_multiplier
-      },
-      score: llmJson.score,
-      is_completed: true,
-    })
+    try {
+      console.log('[judge] Attempting to save result for user:', effectiveUserId)
+      const { data: insertData, error: insertError } = await supabase
+        .from('test_results')
+        .insert({
+          user_id: effectiveUserId,
+          company_id: effectiveCompanyId,
+          type: 'stage2',
+          answers: chatHistory,
+          llm_feedback: {
+            score: llmJson.score,
+            feedback: llmJson.feedback,
+            time_saved_multiplier: llmJson.time_saved_multiplier
+          },
+          score: llmJson.score,
+          is_completed: true,
+        })
+        .select()
 
-    if (insertError) {
-      console.error('[judge] DB insert error:', insertError)
-      // We don't return error here to let the user see the result even if save fails,
-      // but the task says it MUST save, so let's log it.
+      if (insertError) {
+        console.error('[judge] Supabase Insert Error:', {
+          message: insertError.message,
+          code: insertError.code,
+          details: insertError.details,
+          hint: insertError.hint
+        })
+        return new Response(JSON.stringify({ 
+          error: 'Failed to save results to database', 
+          details: insertError.message,
+          code: insertError.code
+        }), { status: 500 })
+      }
+      console.log('[judge] Result saved successfully:', insertData?.[0]?.id)
+    } catch (dbErr: any) {
+      console.error('[judge] DB operation exception:', dbErr)
+      return new Response(JSON.stringify({ 
+        error: 'Database operation failed', 
+        details: dbErr.message 
+      }), { status: 500 })
     }
 
     return new Response(JSON.stringify(llmJson), {

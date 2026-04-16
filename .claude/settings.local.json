@@ -10,7 +10,17 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(mkdir *)",
+      "Bash(mv docs/files/METHODOLOGY_V3.md docs/00_project/METHODOLOGY_V3.md)",
+      "Bash(mv docs/files/FILE_STRUCTURE.md docs/00_project/FILE_STRUCTURE.md)",
+      "Bash(mv docs/files/STAGE2_ARCHITECTURE.md docs/01_architecture/STAGE2_ARCHITECTURE.md)",
+      "Bash(mv docs/files/STAGE2_TASKS.md docs/02_tests/stage2/STAGE2_TASKS.md)",
+      "Bash(mv docs/files/STAGE3_TEMPLATE.md docs/02_tests/stage3/STAGE3_TEMPLATE.md)",
+      "Bash(grep -rn \"docs/files/\" docs/)",
+      "Bash(grep -rn \"02_tests/STAGE\" docs/)",
+      "Bash(grep -rn \"02_tests/profiles/\" docs/)",
+      "Bash(grep -rn \"04_reports/REPORT\" docs/)"
     ]
   }
 }
