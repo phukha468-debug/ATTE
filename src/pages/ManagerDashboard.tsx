@@ -255,8 +255,8 @@ export default function ManagerDashboard() {
                     </div>
                   </div>
                 )}
-              </div>
-            </CardContent>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </div>
