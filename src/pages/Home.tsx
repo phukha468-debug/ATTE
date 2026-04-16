@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Brain, Target, TrendingUp, Award } from 'lucide-react';
 import { fetchCurrentUserProfile, fetchLatestUserResult, fetchLatestSimulatorResult, TestResult } from '@/lib/api';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -100,10 +101,18 @@ export default function Home() {
               </div>
               <Progress value={hasSimResult ? 100 : 0} className="h-2" />
             </div>
-            <div className="space-y-1.5 opacity-40">
-              <div className="flex justify-between text-sm text-muted-foreground">
+            <div 
+              className={cn(
+                "space-y-1.5 transition-all duration-300",
+                hasSimResult ? "cursor-pointer hover:opacity-80" : "opacity-40 grayscale"
+              )}
+              onClick={() => hasSimResult && navigate('/stage3')}
+            >
+              <div className="flex justify-between text-sm font-medium">
                 <span>Этап 3: Микро-проекты</span>
-                <span className="text-xs bg-muted px-2 py-0.5 rounded-full">Скоро</span>
+                <span className={hasSimResult ? "text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full" : "text-xs bg-muted px-2 py-0.5 rounded-full"}>
+                  {hasSimResult ? 'Доступно' : 'Скоро'}
+                </span>
               </div>
               <Progress value={0} className="h-2" />
             </div>

@@ -14,6 +14,7 @@ import Dashboard from './pages/Dashboard';
 import SimulatorPage from './pages/SimulatorPage';
 import SandboxPage from './pages/SandboxPage';
 import SimulatorResultPage from './pages/SimulatorResultPage';
+import Stage3Page from './pages/Stage3Page';
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="simulator" element={<SimulatorPage />} />
           <Route path="simulator/result" element={<SimulatorResultPage />} />
           <Route path="sandbox/:taskId" element={<SandboxPage />} />
+          <Route path="stage3" element={<Stage3Page />} />
           <Route path="reports" element={<Reports />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="pricing" element={<Pricing />} />

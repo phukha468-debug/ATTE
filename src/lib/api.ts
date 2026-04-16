@@ -185,3 +185,27 @@ export const fetchLatestSimulatorResult = async (): Promise<TestResult | null> =
 
   return data
 }
+
+/**
+ * Отправить результаты Этапа 3 (Микро-проект).
+ */
+export const submitStage3Result = async (data: any): Promise<void> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) throw new Error('No user found')
+
+  const { error } = await supabase.from('test_results').insert({
+    user_id: user.id,
+    type: 'stage3',
+    answers: data,
+    score: 0, // Score will be determined by manager later
+    is_completed: true,
+  })
+
+  if (error) {
+    console.error('submitStage3Result error:', error)
+    throw new Error(`Failed to submit Stage 3 result: ${error.message}`)
+  }
+}
