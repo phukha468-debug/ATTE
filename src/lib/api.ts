@@ -190,14 +190,13 @@ export const fetchLatestSimulatorResult = async (): Promise<TestResult | null> =
  * Отправить результаты Этапа 3 (Микро-проект).
  */
 export const submitStage3Result = async (data: any): Promise<void> => {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const profile = await fetchCurrentUserProfile()
 
-  if (!user) throw new Error('No user found')
+  if (!profile) throw new Error('No user profile found')
 
   const { error } = await supabase.from('test_results').insert({
-    user_id: user.id,
+    user_id: profile.id,
+    company_id: profile.company_id,
     type: 'stage3',
     answers: data,
     score: 0, // Score will be determined by manager later

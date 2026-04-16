@@ -7,33 +7,27 @@ import { Bot, Cpu, Rocket, Lock, Trophy, ArrowLeft, Loader2, Sparkles, TrendingU
 import { TestRunner } from '@/components/TestRunner'
 import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
-import { fetchQuestions, submitTestResults, type EvaluationResult } from '@/lib/api'
+import { fetchQuestions, submitTestResults, fetchLatestUserResult, fetchLatestSimulatorResult, type EvaluationResult, type TestResult } from '@/lib/api'
 import { useTestStore } from '@/store/testStore'
 
-const stages = [
+const STAGE_CONFIG = [
   {
     id: 1,
     title: 'Этап 1: Карта рутины',
     description: 'Оценка ИИ-компетенций: рутина, промптинг, ограничения, правовая грамотность.',
     icon: Bot,
-    status: 'active' as const,
-    score: '—',
   },
   {
     id: 2,
     title: 'Этап 2: ИИ-Симулятор',
     description: 'Решение реальных рабочих задач с помощью LLM-Judge.',
     icon: Cpu,
-    status: 'active' as const,
-    score: '—',
   },
   {
     id: 3,
     title: 'Этап 3: Микро-проект',
     description: 'Разработка и внедрение ИИ-решения в рабочий процесс.',
     icon: Rocket,
-    status: 'locked' as const,
-    score: '—',
   },
 ]
 
@@ -60,25 +54,36 @@ export default function Tests() {
   const [evaluating, setEvaluating] = useState(false)
   const [evalResult, setEvalResult] = useState<EvaluationResult | null>(null)
   const [evalError, setEvalError] = useState<string | null>(null)
+  const [results, setResults] = useState<{s1: TestResult | null, s2: TestResult | null}>({ s1: null, s2: null })
   const testStore = useTestStore()
 
   useEffect(() => {
-    fetchQuestions()
-      .then(qs => {
-        console.log('[tests] fetchQuestions returned:', qs.length, 'questions')
+    async function loadData() {
+      try {
+        const [qs, s1, s2] = await Promise.all([
+          fetchQuestions(),
+          fetchLatestUserResult(),
+          fetchLatestSimulatorResult()
+        ]);
+
+        console.log('[tests] data loaded:', { qs: qs.length, s1: !!s1, s2: !!s2 })
+        
         if (qs.length > 0) {
           testStore.setQuestions(qs)
-          console.log(`✅ fetchQuestions: ${qs.length} questions loaded, store updated`)
         } else {
-          console.warn('[tests] ⚠️ fetchQuestions returned 0 questions — DB may be empty')
-          setFetchError('Вопросы не найдены в базе данных. Обратитесь к администратору.')
+          setFetchError('Вопросы не найдены в базе данных.')
         }
-      })
-      .catch((err: Error) => {
+        
+        setResults({ s1, s2 })
+      } catch (err: any) {
         setFetchError(err.message)
-        console.error('❌ fetchQuestions failed:', err.message)
-      })
-      .finally(() => setLoading(false))
+        console.error('❌ Data loading failed:', err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    loadData()
   }, [])
 
   const startTest = (id: number) => {
@@ -86,19 +91,31 @@ export default function Tests() {
       navigate('/simulator')
       return
     }
-    if (loading) {
-      console.warn('[tests] startTest called while still loading')
+    if (id === 3) {
+      navigate('/stage3')
       return
     }
-    if (testStore.questions.length === 0) {
-      console.error('[tests] startTest called with 0 questions in store')
-      setFetchError('Вопросы не загружены. Попробуйте обновить страницу.')
-      return
-    }
+    if (loading) return
     setActiveStage(id)
     setEvalResult(null)
     setEvalError(null)
   }
+
+  const stages = STAGE_CONFIG.map(stage => {
+    let status: 'active' | 'locked' = 'active'
+    let score = '—'
+
+    if (stage.id === 1) {
+      score = results.s1 ? `${results.s1.score}%` : '—'
+    } else if (stage.id === 2) {
+      status = results.s1 ? 'active' : 'locked'
+      score = results.s2 ? `${results.s2.score}%` : '—'
+    } else if (stage.id === 3) {
+      status = results.s2 ? 'active' : 'locked'
+    }
+
+    return { ...stage, status, score }
+  })
 
   const handleComplete = async (answers: Record<string, { value: unknown; text?: string }>) => {
     setEvaluating(true)

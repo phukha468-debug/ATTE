@@ -133,14 +133,6 @@ export default function Home() {
           </div>
         </CardContent>
       </Card>
-
-      <Button
-        className="w-full py-4 text-xs font-bold shadow-none mt-2"
-        onClick={() => navigate(hasResult ? '/simulator' : '/tests')}
-      >
-        {hasResult ? 'Перейти к симулятору' : 'К тестам'}
-      </Button>
-
     </div>
   );
 }
