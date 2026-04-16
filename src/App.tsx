@@ -15,8 +15,17 @@ import SimulatorPage from './pages/SimulatorPage';
 import SandboxPage from './pages/SandboxPage';
 import SimulatorResultPage from './pages/SimulatorResultPage';
 import Stage3Page from './pages/Stage3Page';
+import ManagerDashboard from './pages/ManagerDashboard';
+import { useAppStore } from './store/appStore';
+import { useEffect } from 'react';
 
 export default function App() {
+  const loadAppData = useAppStore(state => state.loadAppData);
+
+  useEffect(() => {
+    loadAppData();
+  }, [loadAppData]);
+
   return (
     <BrowserRouter>
       <Routes>
@@ -27,8 +36,9 @@ export default function App() {
           <Route path="simulator/result" element={<SimulatorResultPage />} />
           <Route path="sandbox/:taskId" element={<SandboxPage />} />
           <Route path="stage3" element={<Stage3Page />} />
+          <Route path="dashboard" element={<ManagerDashboard />} />
           <Route path="reports" element={<Reports />} />
-          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="analytics" element={<Dashboard />} />
           <Route path="pricing" element={<Pricing />} />
           <Route path="profile" element={<Profile />} />
         </Route>

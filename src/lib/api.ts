@@ -107,6 +107,34 @@ export const fetchCompanyResults = async (): Promise<TestResult[]> => {
 }
 
 /**
+ * Получить последний завершенный результат текущего пользователя для Этапа 3 (Микро-проект).
+ */
+export const fetchLatestStage3Result = async (): Promise<TestResult | null> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return null
+
+  const { data, error } = await supabase
+    .from('test_results')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('is_completed', true)
+    .eq('type', 'stage3')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    console.error('fetchLatestStage3Result error:', error)
+    return null
+  }
+
+  return data
+}
+
+/**
  * Получить профиль текущего пользователя.
  */
 export const fetchCurrentUserProfile = async () => {
@@ -207,4 +235,39 @@ export const submitStage3Result = async (data: any): Promise<void> => {
     console.error('submitStage3Result error:', error)
     throw new Error(`Failed to submit Stage 3 result: ${error.message}`)
   }
+}
+
+/**
+ * Утвердить проект Этапа 3.
+ */
+export const approveStage3Result = async (resultId: string): Promise<void> => {
+  const { error } = await supabase
+    .from('test_results')
+    .update({ 
+      score: 100, // Or some other approval logic
+      is_completed: true 
+    })
+    .eq('id', resultId)
+
+  if (error) {
+    console.error('approveStage3Result error:', error)
+    throw new Error(`Failed to approve Stage 3 result: ${error.message}`)
+  }
+}
+
+/**
+ * Получить абсолютно все результаты компании (для менеджера).
+ */
+export const fetchAllCompanyResults = async (): Promise<TestResult[]> => {
+  const { data, error } = await supabase
+    .from('test_results')
+    .select('*, users(full_name, role)')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('fetchAllCompanyResults error:', error)
+    throw new Error(`Failed to fetch results: ${error.message}`)
+  }
+
+  return data || []
 }

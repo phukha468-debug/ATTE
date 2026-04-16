@@ -7,8 +7,10 @@ import { Bot, Cpu, Rocket, Lock, Trophy, ArrowLeft, Loader2, Sparkles, TrendingU
 import { TestRunner } from '@/components/TestRunner'
 import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
-import { fetchQuestions, submitTestResults, fetchLatestUserResult, fetchLatestSimulatorResult, type EvaluationResult, type TestResult } from '@/lib/api'
+import { fetchQuestions, submitTestResults, type EvaluationResult } from '@/lib/api'
 import { useTestStore } from '@/store/testStore'
+import { useAppStore } from '@/store/appStore'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const STAGE_CONFIG = [
   {
@@ -49,41 +51,31 @@ function getScoreLabel(score: number): string {
 export default function Tests() {
   const navigate = useNavigate()
   const [activeStage, setActiveStage] = useState<number | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loadingQuestions, setLoadingQuestions] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [evaluating, setEvaluating] = useState(false)
   const [evalResult, setEvalResult] = useState<EvaluationResult | null>(null)
   const [evalError, setEvalError] = useState<string | null>(null)
-  const [results, setResults] = useState<{s1: TestResult | null, s2: TestResult | null}>({ s1: null, s2: null })
+  
   const testStore = useTestStore()
+  const { latestResult: s1, simulatorResult: s2, isLoading: loadingAppData } = useAppStore()
 
   useEffect(() => {
-    async function loadData() {
+    async function loadQuestions() {
       try {
-        const [qs, s1, s2] = await Promise.all([
-          fetchQuestions(),
-          fetchLatestUserResult(),
-          fetchLatestSimulatorResult()
-        ]);
-
-        console.log('[tests] data loaded:', { qs: qs.length, s1: !!s1, s2: !!s2 })
-        
+        const qs = await fetchQuestions();
         if (qs.length > 0) {
           testStore.setQuestions(qs)
         } else {
           setFetchError('Вопросы не найдены в базе данных.')
         }
-        
-        setResults({ s1, s2 })
       } catch (err: any) {
         setFetchError(err.message)
-        console.error('❌ Data loading failed:', err.message)
       } finally {
-        setLoading(false)
+        setLoadingQuestions(false)
       }
     }
-    
-    loadData()
+    loadQuestions()
   }, [])
 
   const startTest = (id: number) => {
@@ -95,7 +87,7 @@ export default function Tests() {
       navigate('/stage3')
       return
     }
-    if (loading) return
+    if (loadingQuestions) return
     setActiveStage(id)
     setEvalResult(null)
     setEvalError(null)
@@ -106,12 +98,12 @@ export default function Tests() {
     let score = '—'
 
     if (stage.id === 1) {
-      score = results.s1 ? `${results.s1.score}%` : '—'
+      score = s1 ? `${s1.score}%` : '—'
     } else if (stage.id === 2) {
-      status = results.s1 ? 'active' : 'locked'
-      score = results.s2 ? `${results.s2.score}%` : '—'
+      status = s1 ? 'active' : 'locked'
+      score = s2 ? `${s2.score}%` : '—'
     } else if (stage.id === 3) {
-      status = results.s2 ? 'active' : 'locked'
+      status = s2 ? 'active' : 'locked'
     }
 
     return { ...stage, status, score }
@@ -270,21 +262,39 @@ export default function Tests() {
 
   // ── Stages list ──
   return (
-    <div className="space-y-6">
-      <header className="pt-4">
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <header className="pt-4 min-h-[100px]">
         <h1 className="text-3xl font-bold tracking-tight font-heading">Твоя Аттестация</h1>
         <p className="text-muted-foreground mt-1">Пройди все этапы для повышения грейда</p>
-        {loading && <p className="text-xs text-muted-foreground mt-1">Загрузка вопросов...</p>}
+        {(loadingQuestions || loadingAppData) && <p className="text-xs text-muted-foreground mt-1 animate-pulse">Загрузка...</p>}
         {fetchError && <p className="text-xs text-destructive mt-1">⚠️ {fetchError}</p>}
-        {!loading && testStore.questions.length > 0 && (
+        {!loadingQuestions && testStore.questions.length > 0 && (
           <p className="text-xs text-muted-foreground mt-1">
             📚 {testStore.questions.length} вопросов в базе
           </p>
         )}
       </header>
 
-      <div className="space-y-4">
-        {stages.map((stage) => (
+      <div className="space-y-4 min-h-[400px]">
+        {loadingAppData ? (
+          [1, 2, 3].map(i => (
+            <Card key={i} className="bg-card/50">
+              <CardHeader className="flex flex-row items-center gap-4 pb-2">
+                <Skeleton className="w-12 h-12 rounded-2xl" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-5 w-48" />
+                  <Skeleton className="h-3 w-full" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-between items-center mt-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-8 w-20" />
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : stages.map((stage) => (
           <Card key={stage.id} className={cn(
             'transition-all duration-300',
             stage.status === 'locked' ? 'opacity-60 grayscale' : 'hover:shadow-md',

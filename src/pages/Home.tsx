@@ -4,57 +4,59 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Brain, Target, TrendingUp, Award } from 'lucide-react';
-import { fetchCurrentUserProfile, fetchLatestUserResult, fetchLatestSimulatorResult, TestResult } from '@/lib/api';
-import { cn } from '@/lib/utils';
+import { Brain, Target, TrendingUp, Award, BarChart3, ChevronRight } from 'lucide-react';
+import { useAppStore } from '@/store/appStore';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Home() {
   const navigate = useNavigate();
-  const [userName, setUserName] = useState('');
-  const [latestResult, setLatestResult] = useState<TestResult | null>(null);
-  const [simulatorResult, setSimulatorResult] = useState<TestResult | null>(null);
+  const { userProfile, latestResult, simulatorResult, isLoading } = useAppStore();
 
-  useEffect(() => {
-    async function loadData() {
-      const [profile, result, simResult] = await Promise.all([
-        fetchCurrentUserProfile(),
-        fetchLatestUserResult(),
-        fetchLatestSimulatorResult()
-      ]);
-      if (profile?.full_name) {
-        setUserName(profile.full_name.split(' ')[0]); // first name only
-      }
-      setLatestResult(result);
-      setSimulatorResult(simResult);
-    }
-    loadData();
-  }, []);
+  const userName = userProfile?.full_name ? userProfile.full_name.split(' ')[0] : 'друг';
+  const userRole = userProfile?.role || '';
 
   const score = latestResult?.score ?? 0;
   const hasResult = !!latestResult;
   const simScore = simulatorResult?.score ?? 0;
   const hasSimResult = !!simulatorResult;
 
+  const isManager = userRole.toLowerCase().includes('manager') || userRole.toLowerCase().includes('admin');
+
   return (
-    <div className="space-y-4 font-sans antialiased overflow-x-hidden">
+    <div className="space-y-4 font-sans antialiased overflow-x-hidden animate-in fade-in duration-500">
       <header className="flex justify-between items-center py-3">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight">Привет, {userName || 'друг'}!</h1>
-          <p className="text-sm text-muted-foreground">Прогресс в ИИ-аттестации</p>
+        <div className="min-h-[48px]">
+          {isLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+          ) : (
+            <>
+              <h1 className="text-xl font-bold tracking-tight">Привет, {userName}!</h1>
+              <p className="text-sm text-muted-foreground">Прогресс в ИИ-аттестации</p>
+            </>
+          )}
         </div>
         <Avatar className="w-11 h-11 border border-primary/20 shadow-sm">
-          <AvatarFallback className="text-sm font-bold">{userName ? userName.charAt(0).toUpperCase() : '?'}</AvatarFallback>
+          <AvatarFallback className="text-sm font-bold">
+            {isLoading ? <Skeleton className="h-full w-full rounded-full" /> : (userName ? userName.charAt(0).toUpperCase() : '?')}
+          </AvatarFallback>
         </Avatar>
       </header>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 min-h-[120px]">
         <Card className="bg-primary/5 border-primary/10 shadow-none">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <Brain className="w-4 h-4 text-primary" />
               <span className="text-xs font-bold uppercase tracking-widest text-primary/70">Навыки</span>
             </div>
-            <div className="text-3xl font-bold">{hasResult ? `${score}%` : '—'}</div>
+            {isLoading ? (
+              <Skeleton className="h-8 w-16 mb-2" />
+            ) : (
+              <div className="text-3xl font-bold">{hasResult ? `${score}%` : '—'}</div>
+            )}
             <p className="text-xs text-muted-foreground font-medium mt-1">
               {hasResult ? 'Результат теста' : 'Тест не пройден'}
             </p>
@@ -66,7 +68,11 @@ export default function Home() {
               <Target className="w-4 h-4 text-accent-foreground" />
               <span className="text-xs font-bold uppercase tracking-widest text-accent-foreground/70">Симулятор</span>
             </div>
-            <div className="text-3xl font-bold">{hasSimResult ? `${simScore}%` : '—'}</div>
+            {isLoading ? (
+              <Skeleton className="h-8 w-16 mb-2" />
+            ) : (
+              <div className="text-3xl font-bold">{hasSimResult ? `${simScore}%` : '—'}</div>
+            )}
             <p className="text-xs text-muted-foreground font-medium mt-1">
               {hasSimResult ? 'Пройдено' : 'В процессе'}
             </p>
@@ -74,7 +80,7 @@ export default function Home() {
         </Card>
       </div>
 
-      <Card className="shadow-none">
+      <Card className="shadow-none min-h-[200px]">
         <CardHeader className="py-3 px-4">
           <CardTitle className="text-xs font-bold uppercase flex items-center gap-2 text-muted-foreground tracking-wider">
             <TrendingUp className="w-4 h-4" />
@@ -82,43 +88,69 @@ export default function Home() {
           </CardTitle>
         </CardHeader>
         <CardContent className="px-4 pb-4 pt-0">
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-sm font-medium">
-                <span>Этап 1: ИИ-Аттестация</span>
-                <span className={hasResult ? "text-green-500 font-bold" : ""}>
-                  {hasResult ? '✓ Готово' : '0%'}
-                </span>
-              </div>
-              <Progress value={hasResult ? 100 : 0} className="h-2" />
+          {isLoading ? (
+            <div className="space-y-6 mt-2">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="space-y-2">
+                  <div className="flex justify-between">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                  <Skeleton className="h-2 w-full" />
+                </div>
+              ))}
             </div>
-            <div className="space-y-1.5 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigate('/simulator')}>
-              <div className="flex justify-between text-sm font-medium">
-                <span>Этап 2: Симулятор</span>
-                <span className={hasSimResult ? "text-green-500 font-bold" : "text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full"}>
-                  {hasSimResult ? '✓ Пройдено' : 'Доступно'}
-                </span>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-sm font-medium">
+                  <span>Этап 1: ИИ-Аттестация</span>
+                  <span className={hasResult ? "text-green-500 font-bold" : ""}>
+                    {hasResult ? '✓ Готово' : '0%'}
+                  </span>
+                </div>
+                <Progress value={hasResult ? 100 : 0} className="h-2" />
               </div>
-              <Progress value={hasSimResult ? 100 : 0} className="h-2" />
-            </div>
-            <div 
-              className={cn(
-                "space-y-1.5 transition-all duration-300",
-                hasSimResult ? "cursor-pointer hover:opacity-80" : "opacity-40 grayscale"
-              )}
-              onClick={() => hasSimResult && navigate('/stage3')}
-            >
-              <div className="flex justify-between text-sm font-medium">
-                <span>Этап 3: Микро-проекты</span>
-                <span className={hasSimResult ? "text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full" : "text-xs bg-muted px-2 py-0.5 rounded-full"}>
-                  {hasSimResult ? 'Доступно' : 'Скоро'}
-                </span>
+              <div className="space-y-1.5 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigate('/simulator')}>
+                <div className="flex justify-between text-sm font-medium">
+                  <span>Этап 2: Симулятор</span>
+                  <span className={hasSimResult ? "text-green-500 font-bold" : "text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full"}>
+                    {hasSimResult ? '✓ Пройдено' : 'Доступно'}
+                  </span>
+                </div>
+                <Progress value={hasSimResult ? 100 : 0} className="h-2" />
               </div>
-              <Progress value={0} className="h-2" />
+              <div 
+                className={cn(
+                  "space-y-1.5 transition-all duration-300",
+                  hasSimResult ? "cursor-pointer hover:opacity-80" : "opacity-40 grayscale"
+                )}
+                onClick={() => hasSimResult && navigate('/stage3')}
+              >
+                <div className="flex justify-between text-sm font-medium">
+                  <span>Этап 3: Микро-проекты</span>
+                  <span className={hasSimResult ? "text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full" : "text-xs bg-muted px-2 py-0.5 rounded-full"}>
+                    {hasSimResult ? 'Доступно' : 'Скоро'}
+                  </span>
+                </div>
+                <Progress value={0} className="h-2" />
+              </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
+
+      {isManager && (
+        <Button 
+          variant="outline" 
+          className="w-full py-6 border-primary/20 bg-primary/5 text-primary font-bold hover:bg-primary/10 transition-colors flex items-center justify-center gap-2 group"
+          onClick={() => navigate('/dashboard')}
+        >
+          <BarChart3 className="w-5 h-5" />
+          Панель управления компанией
+          <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+        </Button>
+      )}
 
       <Card className="border-none shadow-none bg-accent/5">
         <CardContent className="p-4 flex gap-3">
