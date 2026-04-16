@@ -86,7 +86,7 @@ async function authUser(
   username: string,
   botToken: string,
   res: VercelResponse,
-): Promise<void> {
+): Promise<VercelResponse | void> {
   const { users, companies } = DB_SCHEMA
   console.log(`[auth] → authUser called: tgId=${tgId}, fullName="${fullName}"`)
 
@@ -201,7 +201,7 @@ async function authUser(
 
 // ─── Handler (Vercel standard: req, res) ───────────────────────────────────
 
-export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+export default async function handler(req: VercelRequest, res: VercelResponse): Promise<VercelResponse | void> {
   console.log(`[auth] ▸ Incoming request: method=${req.method}`)
 
   try {
