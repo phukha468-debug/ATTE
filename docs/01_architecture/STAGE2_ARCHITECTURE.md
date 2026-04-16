@@ -277,9 +277,9 @@ tasks/
 | Документ | Статус | Путь |
 |----------|--------|------|
 | Архитектура Этапа 2 | ✅ | `STAGE2_ARCHITECTURE.md` (этот файл) |
-| Экспертный профиль: Продажи B2B | ✅ | `profiles/PROFILE_SALES_B2B.md` |
-| Пул заданий: Продажи B2B | ✅ | `tasks/TASKS_SALES_B2B.md` |
-| Core Skill Judge | ✅ | `skills/SKILL_JUDGE_CORE.md` |
+| Экспертный профиль: Продажи B2B | ✅ | `../02_tests/stage2/profiles/PROFILE_SALES_B2B.md` |
+| Пул заданий: Продажи B2B | ✅ | `../02_tests/stage2/tasks/TASKS_SALES_B2B.md` |
+| Core Skill Judge | ✅ | `../03_skills/SKILL_JUDGE_CORE.md` |
 | Экспертный профиль: Маркетинг | ⬜ | Следующий шаг |
 | Экспертный профиль: HR | ⬜ | Следующий шаг |
 | Пул заданий: Маркетинг | ⬜ | Следующий шаг |

@@ -117,8 +117,8 @@
 |----------|------|
 | Экспертные профили | `profiles/PROFILE_{id}.md` |
 | Пулы заданий | `tasks/TASKS_{id}.md` |
-| Core Skill Judge | `03_skills/SKILL_JUDGE_CORE.md` |
-| LLM Judge (все режимы) | `03_skills/LLM_JUDGE_SKILL.md` |
-| Архитектура Этапа 2 | `01_architecture/STAGE2_ARCHITECTURE.md` |
+| Core Skill Judge | `../../03_skills/SKILL_JUDGE_CORE.md` |
+| LLM Judge (все режимы) | `../../03_skills/LLM_JUDGE_SKILL.md` |
+| Архитектура Этапа 2 | `../../01_architecture/STAGE2_ARCHITECTURE.md` |
 
 *66ai Stage 2 Tasks Index v3.0 | 2026-04-16*

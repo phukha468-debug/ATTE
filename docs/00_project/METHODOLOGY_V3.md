@@ -160,7 +160,7 @@
 
 ### Пороги: ≥75% допущен · 60-74% условно · <60% обучение + пересдача.
 
-Все вопросы → `02_tests/STAGE1_QUESTIONS.md`
+Все вопросы → `02_tests/stage1/STAGE1_QUESTIONS.md`
 
 ---
 
@@ -305,8 +305,8 @@
 - Зоны роста из обратной связи → рекомендации в финальном отчёте
 - Баллы → расчёт грейда (грейд 3 требует Этап 1 ≥ 75% + Этап 2 ≥ 70%)
 
-Задания Этапа 2 → `02_tests/STAGE2_TASKS.md`
-Профили → `02_tests/profiles/`
+Задания Этапа 2 → `02_tests/stage2/STAGE2_TASKS.md`
+Профили → `02_tests/stage2/profiles/`
 Скилл Judge (Core) → `03_skills/SKILL_JUDGE_CORE.md`
 Скилл Judge (v1, открытые ответы) → `03_skills/LLM_JUDGE_SKILL.md`
 
@@ -322,7 +322,7 @@
 
 **Связка с предыдущими этапами:** Если сотрудник на Этапе 2 показал хорошее ускорение на КП — микро-проект может быть «внедрить шаблон КП в отдел». Зоны роста из Этапа 2 учитываются при оценке.
 
-Шаблон → `02_tests/STAGE3_TEMPLATE.md`
+Шаблон → `02_tests/stage3/STAGE3_TEMPLATE.md`
 
 ---
 
@@ -387,11 +387,11 @@
 
 | Документ | Путь |
 |----------|------|
-| Вопросы Этапа 1 | `02_tests/STAGE1_QUESTIONS.md` |
-| Задания Этапа 2 (сводный) | `02_tests/STAGE2_TASKS.md` |
-| Профиль: Продажи B2B | `02_tests/profiles/PROFILE_SALES_B2B.md` |
-| Задания: Продажи B2B | `02_tests/tasks/TASKS_SALES_B2B.md` |
-| Шаблон Этапа 3 | `02_tests/STAGE3_TEMPLATE.md` |
+| Вопросы Этапа 1 | `02_tests/stage1/STAGE1_QUESTIONS.md` |
+| Задания Этапа 2 (сводный) | `02_tests/stage2/STAGE2_TASKS.md` |
+| Профиль: Продажи B2B | `02_tests/stage2/profiles/PROFILE_SALES_B2B.md` |
+| Задания: Продажи B2B | `02_tests/stage2/tasks/TASKS_SALES_B2B.md` |
+| Шаблон Этапа 3 | `02_tests/stage3/STAGE3_TEMPLATE.md` |
 
 ## Скиллы
 
@@ -404,9 +404,9 @@
 
 | Документ | Путь |
 |----------|------|
-| Отчёт: сотрудник | `04_reports/REPORT_EMPLOYEE_EXAMPLE.md` |
-| Отчёт: руководитель | `04_reports/REPORT_MANAGER_EXAMPLE.md` |
-| Отчёт: компания | `04_reports/REPORT_COMPANY_EXAMPLE.md` |
+| Отчёт: сотрудник | `04_reports/examples/REPORT_EMPLOYEE_EXAMPLE.md` |
+| Отчёт: руководитель | `04_reports/examples/REPORT_MANAGER_EXAMPLE.md` |
+| Отчёт: компания | `04_reports/examples/REPORT_COMPANY_EXAMPLE.md` |
 
 ## Продажи
 
@@ -420,7 +420,7 @@
 
 | Документ | Путь |
 |----------|------|
-| Архитектура Этапа 2 (детальная) | `02_tests/STAGE2_ARCHITECTURE.md` |
+| Архитектура Этапа 2 (детальная) | `01_architecture/STAGE2_ARCHITECTURE.md` |
 
 ---
 
