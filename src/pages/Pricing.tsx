@@ -1,8 +1,10 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAppStore } from '@/store/appStore';
 
 const plans = [
   {
@@ -38,6 +40,8 @@ const plans = [
 ];
 
 export default function Pricing() {
+  const { isLoading } = useAppStore();
+
   const handleSelectPlan = (planName: string) => {
     const webapp = (window as any).Telegram?.WebApp;
     if (webapp) {
@@ -52,54 +56,61 @@ export default function Pricing() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-h-[80vh] animate-in fade-in duration-500 pb-12">
       <header className="text-center">
         <h1 className="text-2xl font-bold tracking-tight">Тарифные планы</h1>
-        <p className="text-muted-foreground">Выберите подходящий уровень поддержки</p>
+        <p className="text-muted-foreground text-sm">Выберите подходящий уровень поддержки</p>
       </header>
 
       <div className="space-y-4">
-        {plans.map((plan) => (
-          <Card 
-            key={plan.name} 
-            className={cn(
-              "relative overflow-hidden transition-all duration-300 hover:shadow-xl",
-              plan.color,
-              plan.recommended ? 'border-primary shadow-lg shadow-primary/10' : 'border-border'
-            )}
-          >
-            {plan.recommended && (
-              <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-[10px] font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wider">
-                Популярно
-              </div>
-            )}
-            <CardHeader>
-              <CardTitle className="text-xl font-heading">{plan.name}</CardTitle>
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-bold">{plan.price}</span>
-                <span className="text-muted-foreground text-sm">/ сотрудник</span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">{plan.description}</p>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {plan.features.map((feature) => (
-                <div key={feature} className="flex items-start gap-2 text-sm">
-                  <Check className={cn("w-4 h-4 mt-0.5 shrink-0", plan.iconColor)} />
-                  <span>{feature}</span>
+        {isLoading ? (
+          <>
+            <Skeleton className="h-[280px] w-full rounded-2xl" />
+            <Skeleton className="h-[280px] w-full rounded-2xl" />
+          </>
+        ) : (
+          plans.map((plan) => (
+            <Card 
+              key={plan.name} 
+              className={cn(
+                "relative overflow-hidden transition-all duration-300 hover:shadow-xl",
+                plan.color,
+                plan.recommended ? 'border-primary shadow-lg shadow-primary/10' : 'border-border'
+              )}
+            >
+              {plan.recommended && (
+                <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-[10px] font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wider">
+                  Популярно
                 </div>
-              ))}
-            </CardContent>
-            <CardFooter>
-              <Button 
-                className="w-full font-bold" 
-                variant={plan.btnVariant}
-                onClick={() => handleSelectPlan(plan.name)}
-              >
-                Выбрать тариф
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
+              )}
+              <CardHeader>
+                <CardTitle className="text-xl font-heading">{plan.name}</CardTitle>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-bold">{plan.price}</span>
+                  <span className="text-muted-foreground text-sm">/ сотрудник</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">{plan.description}</p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {plan.features.map((feature) => (
+                  <div key={feature} className="flex items-start gap-2 text-sm">
+                    <Check className={cn("w-4 h-4 mt-0.5 shrink-0", plan.iconColor)} />
+                    <span>{feature}</span>
+                  </div>
+                ))}
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  className="w-full font-bold py-6" 
+                  variant={plan.btnVariant}
+                  onClick={() => handleSelectPlan(plan.name)}
+                >
+                  Выбрать тариф
+                </Button>
+              </CardFooter>
+            </Card>
+          ))
+        )}
       </div>
     </div>
   );

@@ -6,8 +6,10 @@ import {
   fetchLatestStage3Result,
   type TestResult 
 } from '@/lib/api'
+import { useTestStore } from './testStore'
 
 interface AppState {
+  userId: string | null
   userProfile: any | null
   latestResult: TestResult | null
   simulatorResult: TestResult | null
@@ -17,11 +19,12 @@ interface AppState {
   error: string | null
 
   // Actions
-  loadAppData: (force?: boolean) => Promise<void>
+  loadAppData: (userId: string, force?: boolean) => Promise<void>
   clearAppData: () => void
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
+  userId: null,
   userProfile: null,
   latestResult: null,
   simulatorResult: null,
@@ -30,11 +33,18 @@ export const useAppStore = create<AppState>((set, get) => ({
   isLoaded: false,
   error: null,
 
-  loadAppData: async (force = false) => {
-    if (get().isLoaded && !force && !get().error) return
+  loadAppData: async (userId: string, force = false) => {
+    // If user changed, clear old data first
+    if (get().userId && get().userId !== userId) {
+      console.log('[store] User ID mismatch, clearing old state...')
+      get().clearAppData()
+    }
 
-    set({ isLoading: true, error: null })
+    if (get().isLoaded && !force && !get().error && get().userId === userId) return
+
+    set({ isLoading: true, error: null, userId })
     try {
+      console.log(`[store] Fetching data for user: ${userId}`)
       const [profile, result, simResult, s3Result] = await Promise.all([
         fetchCurrentUserProfile(),
         fetchLatestUserResult(),
@@ -56,11 +66,21 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  clearAppData: () => set({ 
-    userProfile: null, 
-    latestResult: null, 
-    simulatorResult: null, 
-    stage3Result: null,
-    isLoaded: false 
-  })
+  clearAppData: () => {
+    console.log('[store] Clearing all app data...')
+    
+    // Reset test store too
+    useTestStore.getState().resetTest()
+    
+    set({ 
+      userId: null,
+      userProfile: null, 
+      latestResult: null, 
+      simulatorResult: null, 
+      stage3Result: null,
+      isLoaded: false,
+      isLoading: false,
+      error: null
+    })
+  }
 }))

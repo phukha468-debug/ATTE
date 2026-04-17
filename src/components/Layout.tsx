@@ -48,7 +48,7 @@ function ErrorScreen({ message }: { message: string }) {
 export function Layout() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { loadAppData, userProfile } = useAppStore()
+  const { loadAppData, clearAppData, userProfile } = useAppStore()
   const [authState, setAuthState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -58,6 +58,15 @@ export function Layout() {
       setAuthState('error')
       setErrorMessage('Превышено время ожидания авторизации (8 сек)')
     }, 8000)
+
+    // Listener for session changes (logout/login)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log(`[auth] event: ${event}, userId: ${session?.user?.id}`)
+      if (event === 'SIGNED_OUT') {
+        clearAppData()
+        navigate('/', { replace: true })
+      }
+    })
 
     async function initAuth() {
       try {
@@ -69,11 +78,12 @@ export function Layout() {
           console.log('[auth-debug] 2b. No session — calling loginWithTelegram...')
           await loginWithTelegram()
           console.log('[auth-debug] 2c. loginWithTelegram completed')
+          return // loginWithTelegram will trigger a reload or callback
         }
 
-        // Load all app data (including profile) through store
+        // Load all app data (including profile) through store with userId
         console.log('[auth-debug] 3. Loading app data...')
-        await loadAppData()
+        await loadAppData(session.user.id)
         
         const profile = useAppStore.getState().userProfile
         console.log('[auth-debug] 3b. Profile loaded:', profile ? `role=${profile.role}` : 'null')
@@ -102,8 +112,11 @@ export function Layout() {
 
     initAuth()
 
-    return () => clearTimeout(authTimer)
-  }, [loadAppData, navigate, location.pathname]);
+    return () => {
+      clearTimeout(authTimer)
+      subscription.unsubscribe()
+    }
+  }, [loadAppData, clearAppData, navigate, location.pathname]);
 
   const userRole = userProfile?.role || ''
   const isNoNavPage = location.pathname.startsWith('/sandbox/') || location.pathname === '/simulator/result'
