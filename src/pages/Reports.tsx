@@ -33,7 +33,7 @@ export default function Reports() {
       </header>
 
       {/* Stage 1 Block - Unified */}
-      <Card className="border-none shadow-none bg-accent/5 overflow-hidden">
+      <Card className="overflow-hidden">
         <CardHeader className="py-3 px-4 border-b border-border/10 bg-accent/5">
           <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70 text-center">ЭТАП 1: ЗНАНИЯ</CardTitle>
         </CardHeader>
@@ -87,7 +87,7 @@ export default function Reports() {
       {showSkeletons ? (
         <Skeleton className="h-[140px] w-full rounded-2xl" />
       ) : simulatorResult ? (
-        <Card className="border-none shadow-none bg-primary/5 min-h-[140px]">
+        <Card className="shadow-neumorphic dark:shadow-neon-cyan min-h-[140px]">
           <CardHeader className="py-2 px-4 flex flex-row items-center justify-between">
             <CardTitle className="text-xs font-bold uppercase tracking-wider text-primary/70">Этап 2: Навыки в деле</CardTitle>
             <span className="text-lg font-black text-primary">{simScore}%</span>
@@ -109,7 +109,7 @@ export default function Reports() {
       {showSkeletons ? (
         <Skeleton className="h-[140px] w-full rounded-2xl" />
       ) : stage3Result ? (
-        <Card className="border-none shadow-none bg-amber-500/5 min-h-[140px]">
+        <Card className="min-h-[140px]">
           <CardHeader className="py-2 px-4 flex flex-row items-center justify-between">
             <CardTitle className="text-xs font-bold uppercase tracking-wider text-amber-600/70">Этап 3: Внедрение</CardTitle>
             <div className={cn(

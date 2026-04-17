@@ -26,7 +26,7 @@ export function BottomNav() {
   const navItems = role === 'manager' || role === 'admin' ? managerNavItems : employeeNavItems;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-lg border-t border-border px-4 py-2 pb-safe z-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-background/85 dark:bg-background/90 backdrop-blur-lg border-t border-border dark:border-accent/15 px-4 py-2 pb-safe z-50 transition-colors duration-300">
       <div className="max-w-md mx-auto flex justify-between items-center">
         {navItems.map((item) => (
           <NavLink
@@ -35,7 +35,9 @@ export function BottomNav() {
             className={({ isActive }) =>
               cn(
                 "flex flex-col items-center gap-1 p-2 transition-all duration-300",
-                isActive ? "text-primary scale-110" : "text-muted-foreground hover:text-foreground"
+                isActive
+                  ? "text-primary scale-110 nav-active"
+                  : "text-muted-foreground hover:text-foreground"
               )
             }
           >

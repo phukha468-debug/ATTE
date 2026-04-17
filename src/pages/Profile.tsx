@@ -3,9 +3,10 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Settings, Bell, Shield, LogOut, ChevronRight } from 'lucide-react';
+import { Settings, Bell, Shield, LogOut, ChevronRight, Moon, Sun } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/appStore';
+import { useTheme } from '@/hooks/useTheme';
 
 const menuItems = [
   { icon: Bell, label: 'Уведомления', value: 'Вкл', action: 'Уведомления' },
@@ -16,6 +17,7 @@ const menuItems = [
 export default function Profile() {
   const navigate = useNavigate();
   const { userProfile, isLoading, clearAppData } = useAppStore();
+  const { isDark, toggle } = useTheme();
 
   const fullName = userProfile?.full_name || 'Пользователь';
   const jobTitle = userProfile?.job_title || 'Сотрудник';
@@ -64,11 +66,27 @@ export default function Profile() {
       </div>
 
       <Card>
-        <CardContent className="p-0 divide-y divide-border">
+        <CardContent className="p-0 divide-y divide-border/50">
+          {/* Theme Toggle */}
+          <div
+            className="flex items-center justify-between p-4 hover:bg-muted/30 cursor-pointer transition-colors"
+            onClick={toggle}
+          >
+            <div className="flex items-center gap-3">
+              <div className="bg-muted p-2 rounded-lg">
+                {isDark
+                  ? <Sun className="w-5 h-5 text-primary" />
+                  : <Moon className="w-5 h-5 text-muted-foreground" />
+                }
+              </div>
+              <span className="font-medium">Тема оформления</span>
+            </div>
+            <span className="text-sm text-muted-foreground">{isDark ? 'Тёмная' : 'Светлая'}</span>
+          </div>
           {menuItems.map((item) => (
             <div
               key={item.label}
-              className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors"
+              className="flex items-center justify-between p-4 hover:bg-muted/30 cursor-pointer transition-colors"
               onClick={() => handleMenuItem(item.action)}
             >
               <div className="flex items-center gap-3">

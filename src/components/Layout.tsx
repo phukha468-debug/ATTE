@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { loginWithTelegram } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/appStore';
+import { useTheme } from '@/hooks/useTheme';
+import { Sun, Moon } from 'lucide-react';
 
 function SplashScreen() {
   return (
@@ -51,6 +53,7 @@ export function Layout() {
   const { loadAppData, clearAppData, userProfile } = useAppStore()
   const [authState, setAuthState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState('');
+  const { isDark, toggle } = useTheme();
 
   useEffect(() => {
     // 8-second timeout guard to prevent infinite splash screen
@@ -153,9 +156,25 @@ export function Layout() {
 
   return (
     <div className={cn(
-      "min-h-screen bg-background text-foreground overflow-x-hidden",
+      "min-h-screen bg-background text-foreground overflow-x-hidden transition-colors duration-300",
       !isNoNavPage && "pb-24"
     )} data-role={userRole || ''}>
+      {!isNoNavPage && (
+        <button
+          onClick={toggle}
+          aria-label="Toggle theme"
+          className={cn(
+            "fixed top-4 right-4 z-40 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300",
+            "shadow-neumorphic dark:shadow-neon-cyan",
+            "bg-card text-foreground hover:scale-110 active:scale-95"
+          )}
+        >
+          {isDark
+            ? <Sun className="w-4 h-4 text-primary" />
+            : <Moon className="w-4 h-4 text-primary" />
+          }
+        </button>
+      )}
       <main className={cn(
         "max-w-md mx-auto w-full",
         !isNoNavPage && "px-4 pt-6"
