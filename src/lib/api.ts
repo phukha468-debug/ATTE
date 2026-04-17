@@ -11,137 +11,136 @@ export interface Question {
   created_at: string
 }
 
-/**
- * Получить все вопросы из Supabase.
- * Использует anon ключ (RLS разрешает read для всех авторизованных).
- */
 export const fetchQuestions = async (): Promise<Question[]> => {
   const { data, error } = await supabase
     .from('questions')
     .select('*')
     .order('created_at', { ascending: true })
 
-  if (error) {
-    console.error('fetchQuestions error:', error)
-    throw new Error(`Failed to fetch questions: ${error.message}`)
-  }
-
+  if (error) throw new Error(`Failed to fetch questions: ${error.message}`)
   return data || []
 }
 
-export interface EvaluationResult {
-  score: number
-  feedback: string
-  category_scores: Record<string, number>
-}
+// ─── Stage 1 result ──────────────────────────────────────────────────────────
 
-/**
- * Отправить ответы на LLM-оценку.
- * Передаёт Bearer-токен сессии для серверной валидации JWT.
- */
-export const submitTestResults = async (
-  answers: Record<string, { value: unknown; text?: string }>
-): Promise<EvaluationResult> => {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  if (!session?.access_token) {
-    throw new Error('No active session. Please log in first.')
-  }
-
-  const response = await fetch('/api/ai/evaluate', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${session.access_token}`,
-    },
-    body: JSON.stringify({ answers }),
-  })
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }))
-    throw new Error(`Evaluation failed: ${response.status} ${error.error || ''}`)
-  }
-
-  return response.json()
-}
-
-export interface TestResult {
+export interface Stage1Result {
   id: string
   user_id: string
   company_id: string | null
-  type?: 'stage1' | 'stage2'
-  answers: unknown
-  llm_feedback: {
-    score: number
-    feedback: string
-    category_scores?: Record<string, number>
-    time_saved_multiplier?: number
-  } | null
-  score: number | null
-  is_completed: boolean
+  total_score: number
+  passed: boolean
   created_at: string
-  profiles: {
-    full_name: string
-    role: string
-  } | null
 }
 
-/**
- * Получить результаты аттестации сотрудников компании.
- * RLS автоматически фильтрует по company_id авторизованного пользователя.
- */
-export const fetchCompanyResults = async (): Promise<TestResult[]> => {
-  const { data, error } = await supabase
-    .from('test_results')
-    .select('*, profiles(full_name, role)')
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    console.error('fetchCompanyResults error:', error)
-    throw new Error(`Failed to fetch results: ${error.message}`)
-  }
-
-  return data || []
-}
-
-/**
- * Получить последний завершенный результат текущего пользователя для Этапа 3 (Микро-проект).
- */
-export const fetchLatestStage3Result = async (): Promise<TestResult | null> => {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
+export const fetchLatestUserResult = async (): Promise<Stage1Result | null> => {
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
   const { data, error } = await supabase
-    .from('test_results')
+    .from('stage1_results')
     .select('*')
     .eq('user_id', user.id)
-    .eq('is_completed', true)
-    .eq('type', 'stage3')
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
 
-  if (error) {
-    console.error('fetchLatestStage3Result error:', error)
-    return null
-  }
-
+  if (error) { console.error('fetchLatestUserResult error:', error); return null }
   return data
 }
 
-/**
- * Получить профиль текущего пользователя.
- */
-export const fetchCurrentUserProfile = async () => {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+// ─── Stage 2 result ──────────────────────────────────────────────────────────
 
+export interface Stage2Result {
+  id: string
+  user_id: string
+  company_id: string | null
+  profile_id: string | null
+  task_id: string | null
+  acceleration_x: number | null
+  score_total: number | null
+  score_prompting: number | null
+  score_iterativeness: number | null
+  validated_hours_per_month: number | null
+  passed: boolean
+  created_at: string
+}
+
+export const fetchLatestSimulatorResult = async (): Promise<Stage2Result | null> => {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  const { data, error } = await supabase
+    .from('stage2_results')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) { console.error('fetchLatestSimulatorResult error:', error); return null }
+  return data
+}
+
+// ─── Stage 3 result ──────────────────────────────────────────────────────────
+
+export interface Stage3Result {
+  id: string
+  user_id: string
+  company_id: string | null
+  project_name: string | null
+  linked_routine_task: string | null
+  verdict: string | null
+  confirmed_hours_per_month: number | null
+  created_at: string
+}
+
+export const fetchLatestStage3Result = async (): Promise<Stage3Result | null> => {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  const { data, error } = await supabase
+    .from('stage3_results')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) { console.error('fetchLatestStage3Result error:', error); return null }
+  return data
+}
+
+// ─── Assessment result (aggregated) ─────────────────────────────────────────
+
+export interface AssessmentResult {
+  id?: string
+  user_id: string
+  company_id: string | null
+  stage1_result_id: string | null
+  stage2_result_id: string | null
+  stage3_result_id: string | null
+  final_grade: number | null
+  grade_name: string | null
+  is_champion: boolean | null
+  needs_training: boolean | null
+  validated_hours_per_month: number | null
+  profiles?: { full_name: string; role: string } | null
+}
+
+export const fetchAllCompanyResults = async (): Promise<AssessmentResult[]> => {
+  const { data, error } = await supabase
+    .from('assessment_results')
+    .select('*, profiles(full_name, role)')
+    .order('final_grade', { ascending: false })
+
+  if (error) throw new Error(`Failed to fetch results: ${error.message}`)
+  return data || []
+}
+
+// ─── User profile ─────────────────────────────────────────────────────────────
+
+export const fetchCurrentUserProfile = async () => {
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
   const { data, error } = await supabase
@@ -150,124 +149,57 @@ export const fetchCurrentUserProfile = async () => {
     .eq('id', user.id)
     .single()
 
-  if (error) {
-    console.error('fetchCurrentUserProfile error:', error)
-    return null
-  }
-
+  if (error) { console.error('fetchCurrentUserProfile error:', error); return null }
   return data
 }
 
-/**
- * Получить последний завершенный результат текущего пользователя для Этапа 1.
- */
-export const fetchLatestUserResult = async (): Promise<TestResult | null> => {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+// ─── Submit helpers (kept for compatibility) ─────────────────────────────────
 
-  if (!user) return null
+export const submitTestResults = async (
+  answers: Record<string, { value: unknown; text?: string }>
+): Promise<{ score: number; feedback: string; category_scores: Record<string, number> }> => {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.access_token) throw new Error('No active session.')
 
-  const { data, error } = await supabase
-    .from('test_results')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('is_completed', true)
-    .or('type.eq.stage1,type.is.null') // Stage 1 results
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (error) {
-    console.error('fetchLatestUserResult error:', error)
-    return null
-  }
-
-  return data
-}
-
-/**
- * Получить последний завершенный результат текущего пользователя для Этапа 2 (Симулятор).
- */
-export const fetchLatestSimulatorResult = async (): Promise<TestResult | null> => {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) return null
-
-  const { data, error } = await supabase
-    .from('test_results')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('is_completed', true)
-    .eq('type', 'stage2')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (error) {
-    console.error('fetchLatestSimulatorResult error:', error)
-    return null
-  }
-
-  return data
-}
-
-/**
- * Отправить результаты Этапа 3 (Микро-проект).
- */
-export const submitStage3Result = async (data: any): Promise<void> => {
-  const profile = await fetchCurrentUserProfile()
-
-  if (!profile) throw new Error('No user profile found')
-
-  const { error } = await supabase.from('test_results').insert({
-    user_id: profile.id,
-    company_id: profile.company_id,
-    type: 'stage3',
-    answers: data,
-    score: 0, // Score will be determined by manager later
-    is_completed: true,
+  const response = await fetch('/api/ai/evaluate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+    body: JSON.stringify({ answers }),
   })
 
-  if (error) {
-    console.error('submitStage3Result error:', error)
-    throw new Error(`Failed to submit Stage 3 result: ${error.message}`)
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }))
+    throw new Error(`Evaluation failed: ${response.status} ${error.error || ''}`)
   }
+  return response.json()
 }
 
-/**
- * Утвердить проект Этапа 3.
- */
+export const submitStage3Result = async (data: any): Promise<void> => {
+  const profile = await fetchCurrentUserProfile()
+  if (!profile) throw new Error('No user profile found')
+
+  const { error } = await supabase.from('stage3_results').insert({
+    user_id: profile.id,
+    company_id: profile.company_id,
+    project_name: data.taskName,
+    linked_routine_task: data.linkedTask,
+    verdict: 'pending',
+    confirmed_hours_per_month: data.timeSavedPerMonth,
+  })
+
+  if (error) throw new Error(`Failed to submit Stage 3 result: ${error.message}`)
+}
+
 export const approveStage3Result = async (resultId: string): Promise<void> => {
   const { error } = await supabase
-    .from('test_results')
-    .update({ 
-      score: 100, // Or some other approval logic
-      is_completed: true 
-    })
+    .from('stage3_results')
+    .update({ verdict: 'approved' })
     .eq('id', resultId)
 
-  if (error) {
-    console.error('approveStage3Result error:', error)
-    throw new Error(`Failed to approve Stage 3 result: ${error.message}`)
-  }
+  if (error) throw new Error(`Failed to approve Stage 3 result: ${error.message}`)
 }
 
-/**
- * Получить абсолютно все результаты компании (для менеджера).
- */
-export const fetchAllCompanyResults = async (): Promise<TestResult[]> => {
-  const { data, error } = await supabase
-    .from('test_results')
-    .select('*, profiles(full_name, role)')
-    .order('created_at', { ascending: false })
+// ─── Legacy aliases for backward compatibility ────────────────────────────────
 
-  if (error) {
-    console.error('fetchAllCompanyResults error:', error)
-    throw new Error(`Failed to fetch results: ${error.message}`)
-  }
-
-  return data || []
-}
+export type TestResult = AssessmentResult
+export const fetchCompanyResults = fetchAllCompanyResults

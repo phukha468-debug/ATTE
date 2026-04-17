@@ -31,8 +31,6 @@ const DB_SCHEMA = {
   companies: {
     table: 'companies',
     name: 'name',
-    size_category: 'size_category',
-    pricing_tier: 'pricing_tier',
   },
 } as const
 
@@ -86,8 +84,11 @@ async function createCompanyAndProfile(
     .from(companies.table)
     .insert({
       [companies.name]: `${fullName}'s Workspace`,
-      [companies.size_category]: 'micro',
-      [companies.pricing_tier]: 'pending_micro',
+      industry: 'other',
+      size_total: 1,
+      size_office: 1,
+      tariff: 'free',
+      hourly_rate: 1000,
     })
     .select('id')
     .single()

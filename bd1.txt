@@ -1,0 +1,86 @@
+DO $$
+DECLARE
+    v_company_id UUID := gen_random_uuid();
+    v_user1 UUID; v_user2 UUID; v_user3 UUID; v_user4 UUID;
+    v_s1 UUID; v_s2 UUID; v_s3 UUID;
+BEGIN
+    -- 1. БЕРЕМ РЕАЛЬНЫЕ ID ИЗ AUTH.USERS
+    SELECT id INTO v_user1 FROM auth.users LIMIT 1 OFFSET 0;
+    SELECT id INTO v_user2 FROM auth.users LIMIT 1 OFFSET 1;
+    SELECT id INTO v_user3 FROM auth.users LIMIT 1 OFFSET 2;
+    SELECT id INTO v_user4 FROM auth.users LIMIT 1 OFFSET 3;
+
+    IF v_user1 IS NULL THEN
+        RAISE EXCEPTION 'Нет пользователей в auth.users! Зарегистрируйте хотя бы один аккаунт в приложении.';
+    END IF;
+
+    -- 2. СОЗДАЕМ ТЕСТОВУЮ КОМПАНИЮ
+    INSERT INTO companies (id, name, industry, size_total, size_office, tariff, hourly_rate)
+    VALUES (v_company_id, 'ООО Вектор (Тест Дашборда)', 'IT', 50, 20, 'premium', 1500);
+
+    -- 3. СОЗДАЕМ ПРОФИЛЬ РУКОВОДИТЕЛЯ (Первый аккаунт)
+    INSERT INTO profiles (id, company_id, full_name, role, department, job_title)
+    VALUES (v_user1, v_company_id, 'Босс Руководителев (Вы)', 'manager', 'Продажи', 'Коммерческий директор');
+
+    -- 4. СОТРУДНИК 1: ИИ-Чемпион (Грейд 5)
+    IF v_user2 IS NOT NULL THEN
+        INSERT INTO profiles (id, company_id, full_name, role, department, job_title, profile_id)
+        VALUES (v_user2, v_company_id, 'Иван Чемпионов', 'employee', 'Продажи', 'Менеджер B2B', 'sales_b2b');
+
+        v_s1 := gen_random_uuid();
+        INSERT INTO stage1_results (id, user_id, company_id, total_score, passed) VALUES (v_s1, v_user2, v_company_id, 90, true);
+        
+        INSERT INTO routine_map_items (user_id, company_id, stage1_result_id, task_name, task_category, claimed_monthly_hours)
+        VALUES (v_user2, v_company_id, v_s1, 'Пишу КП клиентам', 'Коммерческие предложения', 20);
+
+        v_s2 := gen_random_uuid();
+        INSERT INTO stage2_results (id, user_id, company_id, profile_id, task_id, acceleration_x, score_total, score_prompting, score_iterativeness, validated_hours_per_month, passed)
+        VALUES (v_s2, v_user2, v_company_id, 'sales_b2b', 'M-1', 4.0, 4.8, 5.0, 4.5, 15.0, true);
+
+        v_s3 := gen_random_uuid();
+        INSERT INTO stage3_results (id, user_id, company_id, project_name, linked_routine_task, verdict, confirmed_hours_per_month)
+        VALUES (v_s3, v_user2, v_company_id, 'Пайплайн КП', 'Коммерческие предложения', 'approved', 14.0);
+
+        INSERT INTO assessment_results (user_id, company_id, stage1_result_id, stage2_result_id, stage3_result_id, final_grade, grade_name, is_champion, validated_hours_per_month)
+        VALUES (v_user2, v_company_id, v_s1, v_s2, v_s3, 5, 'Эксперт', true, 15.0);
+    END IF;
+
+    -- 5. СОТРУДНИК 2: Нуждается в обучении (Грейд 2)
+    IF v_user3 IS NOT NULL THEN
+        INSERT INTO profiles (id, company_id, full_name, role, department, job_title, profile_id)
+        VALUES (v_user3, v_company_id, 'Анна Новичкова', 'employee', 'Продажи', 'Менеджер B2B', 'sales_b2b');
+
+        v_s1 := gen_random_uuid();
+        INSERT INTO stage1_results (id, user_id, company_id, total_score, passed) VALUES (v_s1, v_user3, v_company_id, 65, false);
+        
+        INSERT INTO routine_map_items (user_id, company_id, stage1_result_id, task_name, task_category, claimed_monthly_hours)
+        VALUES (v_user3, v_company_id, v_s1, 'Сбор отзывов', 'Аналитика', 10);
+
+        v_s2 := gen_random_uuid();
+        INSERT INTO stage2_results (id, user_id, company_id, profile_id, task_id, acceleration_x, score_total, score_prompting, score_iterativeness, validated_hours_per_month, passed)
+        VALUES (v_s2, v_user3, v_company_id, 'sales_b2b', 'M-2', 1.5, 2.5, 2.0, 1.0, 6.0, false);
+
+        INSERT INTO assessment_results (user_id, company_id, stage1_result_id, stage2_result_id, final_grade, grade_name, needs_training, validated_hours_per_month)
+        VALUES (v_user3, v_company_id, v_s1, v_s2, 2, 'Начинающий', true, 6.0);
+    END IF;
+
+    -- 6. СОТРУДНИК 3: Крепкий середняк (Грейд 3)
+    IF v_user4 IS NOT NULL THEN
+        INSERT INTO profiles (id, company_id, full_name, role, department, job_title, profile_id)
+        VALUES (v_user4, v_company_id, 'Петр Практиков', 'employee', 'Продажи', 'Менеджер B2B', 'sales_b2b');
+
+        v_s1 := gen_random_uuid();
+        INSERT INTO stage1_results (id, user_id, company_id, total_score, passed) VALUES (v_s1, v_user4, v_company_id, 80, true);
+        
+        INSERT INTO routine_map_items (user_id, company_id, stage1_result_id, task_name, task_category, claimed_monthly_hours)
+        VALUES (v_user4, v_company_id, v_s1, 'Фоллоу-ап письма', 'Письма', 12);
+
+        v_s2 := gen_random_uuid();
+        INSERT INTO stage2_results (id, user_id, company_id, profile_id, task_id, acceleration_x, score_total, score_prompting, score_iterativeness, validated_hours_per_month, passed)
+        VALUES (v_s2, v_user4, v_company_id, 'sales_b2b', 'M-3', 2.5, 3.8, 3.5, 3.0, 8.0, true);
+
+        INSERT INTO assessment_results (user_id, company_id, stage1_result_id, stage2_result_id, final_grade, grade_name, validated_hours_per_month)
+        VALUES (v_user4, v_company_id, v_s1, v_s2, 3, 'Практик', 8.0);
+    END IF;
+
+END $$;

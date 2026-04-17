@@ -16,9 +16,9 @@ export default function Home() {
   const userName = userProfile?.full_name ? userProfile.full_name.split(' ')[0] : 'друг';
   const userRole = userProfile?.role || '';
 
-  const score = latestResult?.score ?? 0;
+  const score = latestResult?.total_score ?? 0;
   const hasResult = !!latestResult;
-  const simScore = simulatorResult?.score ?? 0;
+  const simScore = simulatorResult?.score_total ?? 0;
   const hasSimResult = !!simulatorResult;
 
   const isManager = userRole.toLowerCase().includes('manager') || userRole.toLowerCase().includes('admin');

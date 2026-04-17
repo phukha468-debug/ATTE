@@ -1,19 +1,21 @@
 import { create } from 'zustand'
-import { 
-  fetchCurrentUserProfile, 
-  fetchLatestUserResult, 
-  fetchLatestSimulatorResult, 
+import {
+  fetchCurrentUserProfile,
+  fetchLatestUserResult,
+  fetchLatestSimulatorResult,
   fetchLatestStage3Result,
-  type TestResult 
+  type Stage1Result,
+  type Stage2Result,
+  type Stage3Result,
 } from '@/lib/api'
 import { useTestStore } from './testStore'
 
 interface AppState {
   userId: string | null
   userProfile: any | null
-  latestResult: TestResult | null
-  simulatorResult: TestResult | null
-  stage3Result: TestResult | null
+  latestResult: Stage1Result | null
+  simulatorResult: Stage2Result | null
+  stage3Result: Stage3Result | null
   isLoading: boolean
   isLoaded: boolean
   error: string | null

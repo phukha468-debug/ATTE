@@ -14,14 +14,13 @@ const categoryLabels: Record<string, string> = {
 export default function Reports() {
   const { latestResult, simulatorResult, stage3Result, isLoading, isLoaded } = useAppStore();
 
-  const scores = latestResult?.llm_feedback?.category_scores || {};
-  const overallScore = latestResult?.score ?? 0;
+  const overallScore = latestResult?.total_score ?? 0;
   const isPremium = overallScore >= 80;
 
-  const simScore = simulatorResult?.score ?? 0;
-  const simFeedback = simulatorResult?.llm_feedback?.feedback || '';
+  const simScore = simulatorResult?.score_total ?? 0;
+  const simAcceleration = simulatorResult?.acceleration_x ?? 1.0;
 
-  const s3Data = stage3Result?.answers as any;
+  const s3IsApproved = stage3Result?.verdict === 'approved';
 
   const showSkeletons = isLoading || !isLoaded;
 
@@ -48,19 +47,12 @@ export default function Reports() {
                   </div>
                 ))}
               </div>
-            ) : Object.keys(scores).length > 0 ? (
-              Object.entries(categoryLabels).map(([key, label]) => {
-                const val = scores[key] ?? 0;
-                const displayVal = Math.round(val);
-                return (
-                  <div key={key} className="flex justify-between items-center py-1 border-b border-border/30 last:border-0 text-sm">
-                    <span className="font-medium text-muted-foreground/80">{label}</span>
-                    <span className="font-bold">{displayVal}/10</span>
-                  </div>
-                );
-              })
+            ) : latestResult ? (
+              <div className="py-2 text-center">
+                <p className="text-xs text-muted-foreground">Тест пройден</p>
+              </div>
             ) : (
-              <div className="text-xs text-muted-foreground py-4 text-center">Нет данных. Проройдите тест на вкладке "Тесты".</div>
+              <div className="text-xs text-muted-foreground py-4 text-center">Нет данных. Пройдите тест на вкладке "Тесты".</div>
             )}
           </div>
 
@@ -93,14 +85,16 @@ export default function Reports() {
             <span className="text-lg font-black text-primary">{simScore}%</span>
           </CardHeader>
           <CardContent className="px-4 pb-4 space-y-3">
-             <div className="flex gap-2 items-start bg-background/50 p-3 rounded-xl border border-primary/10">
-                <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <p className="text-xs leading-relaxed italic">{simFeedback}</p>
-             </div>
              <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">
                 <span className="flex items-center gap-1"><Target className="w-3 h-3" /> Симулятор</span>
-                <span>Ускорение: x{simulatorResult.llm_feedback?.time_saved_multiplier || '1.0'}</span>
+                <span>Ускорение: x{simAcceleration.toFixed(1)}</span>
              </div>
+             {simulatorResult.validated_hours_per_month && (
+               <div className="flex gap-2 items-center bg-background/50 p-3 rounded-xl">
+                 <Sparkles className="w-4 h-4 text-primary shrink-0" />
+                 <p className="text-xs">{simulatorResult.validated_hours_per_month}ч/мес подтверждённой экономии</p>
+               </div>
+             )}
           </CardContent>
         </Card>
       ) : null}
@@ -114,33 +108,25 @@ export default function Reports() {
             <CardTitle className="text-xs font-bold uppercase tracking-wider text-amber-600/70">Этап 3: Внедрение</CardTitle>
             <div className={cn(
               "text-[10px] font-bold px-2 py-0.5 rounded-full border",
-              stage3Result.score === 100 ? "bg-green-500/10 border-green-500/20 text-green-600" : "bg-amber-500/10 border-amber-500/20 text-amber-600"
+              s3IsApproved ? "bg-green-500/10 border-green-500/20 text-green-600" : "bg-amber-500/10 border-amber-500/20 text-amber-600"
             )}>
-              {stage3Result.score === 100 ? "Утвержден" : "На проверке"}
+              {s3IsApproved ? "Утвержден" : "На проверке"}
             </div>
           </CardHeader>
           <CardContent className="px-4 pb-4 space-y-4">
              <div className="space-y-1">
-               <h4 className="text-sm font-bold leading-tight">{s3Data?.taskName}</h4>
-               <p className="text-[11px] text-muted-foreground italic line-clamp-2">{s3Data?.promptTemplate}</p>
+               <h4 className="text-sm font-bold leading-tight">{stage3Result.project_name}</h4>
+               <p className="text-[11px] text-muted-foreground italic line-clamp-2">{stage3Result.linked_routine_task}</p>
              </div>
-             
-             <div className="grid grid-cols-2 gap-3">
+             {stage3Result.confirmed_hours_per_month && (
                <div className="bg-background/50 p-2 rounded-lg border border-amber-500/10 flex items-center gap-2">
                  <Clock className="w-3.5 h-3.5 text-amber-600" />
                  <div>
                    <p className="text-[8px] uppercase font-bold text-muted-foreground leading-none">Экономия</p>
-                   <p className="text-xs font-black text-amber-600">{s3Data?.timeSavedPerMonth?.toFixed(1)}ч/мес</p>
+                   <p className="text-xs font-black text-amber-600">{stage3Result.confirmed_hours_per_month.toFixed(1)}ч/мес</p>
                  </div>
                </div>
-               <div className="bg-background/50 p-2 rounded-lg border border-amber-500/10 flex items-center gap-2">
-                 <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" />
-                 <div>
-                   <p className="text-[8px] uppercase font-bold text-muted-foreground leading-none">Масштаб</p>
-                   <p className="text-xs font-black text-amber-600">{s3Data?.scalability}</p>
-                 </div>
-               </div>
-             </div>
+             )}
           </CardContent>
         </Card>
       ) : null}
