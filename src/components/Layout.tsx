@@ -71,14 +71,36 @@ export function Layout() {
     async function initAuth() {
       try {
         console.log('[auth-debug] 1. Starting getSession...')
-        const { data: { session } } = await supabase.auth.getSession()
+        let { data: { session } } = await supabase.auth.getSession()
+
+        // Strict ID mismatch check for TMA (Telegram Mini App)
+        // WebView shares localStorage between accounts on one device, so we must verify TG ID
+        const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user
+        const currentTgId = tgUser?.id
+
+        if (session && currentTgId) {
+          const sessionTgId = session.user.user_metadata?.tg_id
+          // If metadata is missing or ID doesn't match current Telegram user — force logout
+          if (!sessionTgId || String(sessionTgId) !== String(currentTgId)) {
+            console.warn(`[auth] ⚠ Session mismatch: session=${sessionTgId}, current=${currentTgId}. Logging out...`)
+            await supabase.auth.signOut()
+            clearAppData()
+            session = null
+          }
+        }
+
         console.log('[auth-debug] 2. Session found:', !!session)
 
         if (!session) {
           console.log('[auth-debug] 2b. No session — calling loginWithTelegram...')
           await loginWithTelegram()
-          console.log('[auth-debug] 2c. loginWithTelegram completed')
-          return // loginWithTelegram will trigger a reload or callback
+          console.log('[auth-debug] 2c. loginWithTelegram completed, fetching new session...')
+          const { data: { session: newSession } } = await supabase.auth.getSession()
+          session = newSession
+        }
+
+        if (!session) {
+          throw new Error('Не удалось установить сессию после авторизации')
         }
 
         // Load all app data (including profile) through store with userId
