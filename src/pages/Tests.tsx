@@ -265,7 +265,7 @@ export default function Tests() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <header className="pt-4 min-h-[100px]">
         <h1 className="text-3xl font-bold tracking-tight font-heading">Твоя Аттестация</h1>
-        <p className="text-muted-foreground mt-1">Пройди все этапы для повышения грейда</p>
+        <p className="text-muted-foreground mt-1">Пройди все этапы для повышения уровня</p>
         {(loadingQuestions || loadingAppData) && <p className="text-xs text-muted-foreground mt-1 animate-pulse">Загрузка...</p>}
         {fetchError && <p className="text-xs text-destructive mt-1">⚠️ {fetchError}</p>}
         {!loadingQuestions && testStore.questions.length > 0 && (

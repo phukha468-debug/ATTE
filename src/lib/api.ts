@@ -119,8 +119,8 @@ export interface AssessmentResult {
   stage1_result_id: string | null
   stage2_result_id: string | null
   stage3_result_id: string | null
-  final_grade: number | null
-  grade_name: string | null
+  final_level: number | null
+  level_name: string | null
   is_champion: boolean | null
   needs_training: boolean | null
   validated_hours_per_month: number | null
@@ -131,7 +131,7 @@ export const fetchAllCompanyResults = async (): Promise<AssessmentResult[]> => {
   const { data, error } = await supabase
     .from('assessment_results')
     .select('*, profiles(full_name, role)')
-    .order('final_grade', { ascending: false })
+    .order('final_level', { ascending: false })
 
   if (error) throw new Error(`Failed to fetch results: ${error.message}`)
   return data || []

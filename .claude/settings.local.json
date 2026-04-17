@@ -20,7 +20,22 @@
       "Bash(grep -rn \"docs/files/\" docs/)",
       "Bash(grep -rn \"02_tests/STAGE\" docs/)",
       "Bash(grep -rn \"02_tests/profiles/\" docs/)",
-      "Bash(grep -rn \"04_reports/REPORT\" docs/)"
+      "Bash(grep -rn \"04_reports/REPORT\" docs/)",
+      "Bash(vercel --prod)",
+      "Bash(npx vercel *)",
+      "Bash(git commit *)",
+      "Bash(grep -v \"//.*select\")",
+      "Bash(sed -i 's/Средний грейд/Средний уровень/g; s/GRADE_LABELS/LEVEL_LABELS/g; s/gradeInfo/levelInfo/g' src/pages/ManagerDashboard.tsx)",
+      "Bash(sed -i 's/повышения грейда/повышения уровня/g' src/pages/Tests.tsx)",
+      "Bash(sed -i 's/grade/level/g; s/Grade/Level/g' api/ai/evaluate.ts)",
+      "Bash(sed -i 's/final_grade/final_level/g; s/grade_name/level_name/g' src/lib/api.ts)",
+      "Bash(sed -i 's/final_grade/final_level/g; s/grade_name/level_name/g; s/r\\\\.final_grade/r.final_level/g' src/pages/ManagerDashboard.tsx)",
+      "Bash(sed -i 's/final_grade/final_level/g; s/grade_name/level_name/g' scripts/setup-db.sql)",
+      "Bash(sed -i 's/final_grade/final_level/g; s/grade_name/level_name/g' docs/01_architecture/DB_SCHEMA_MAP.md)",
+      "Bash(sed -i 's/final_grade/final_level/g; s/grade_name/level_name/g' api/manager/dashboard/summary.ts)",
+      "Bash(xargs sed -i 's/Грейд/Уровень/g; *)",
+      "Bash(xargs sed -i 's/уровеньы/уровни/g; *)",
+      "Bash(xargs sed -i 's/Домены/Категории/g; *)"
     ]
   }
 }

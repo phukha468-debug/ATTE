@@ -9,7 +9,7 @@ import {
 import { fetchAllCompanyResults, approveStage3Result, type AssessmentResult } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
-const GRADE_LABELS: Record<number, { label: string; color: string }> = {
+const LEVEL_LABELS: Record<number, { label: string; color: string }> = {
   1: { label: 'Новичок',    color: 'text-gray-500' },
   2: { label: 'Начинающий', color: 'text-orange-500' },
   3: { label: 'Практик',    color: 'text-blue-500' },
@@ -52,7 +52,7 @@ export default function ManagerDashboard() {
   // ─── Derived stats ────────────────────────────────────────────────────────
   const totalHours = results.reduce((s, r) => s + (r.validated_hours_per_month || 0), 0);
   const avgGrade = results.length > 0
-    ? results.reduce((s, r) => s + (r.final_grade || 0), 0) / results.length
+    ? results.reduce((s, r) => s + (r.final_level || 0), 0) / results.length
     : 0;
   const champions = results.filter(r => r.is_champion).length;
   const needsTraining = results.filter(r => r.needs_training).length;
@@ -103,7 +103,7 @@ export default function ManagerDashboard() {
         <Card className="text-center">
           <CardContent className="p-4">
             <div className="text-2xl font-black text-foreground">{avgGrade.toFixed(1)}</div>
-            <div className="text-[10px] uppercase font-bold text-muted-foreground mt-1">Средний грейд</div>
+            <div className="text-[10px] uppercase font-bold text-muted-foreground mt-1">Средний уровень</div>
           </CardContent>
         </Card>
         <Card className="text-center">
@@ -136,7 +136,7 @@ export default function ManagerDashboard() {
         ) : (
           <div className="space-y-3">
             {results.map((r, i) => {
-              const gradeInfo = GRADE_LABELS[r.final_grade || 0];
+              const levelInfo = LEVEL_LABELS[r.final_level || 0];
               return (
                 <Card key={r.user_id || i} className="hover:shadow-neumorphic dark:hover:shadow-neon-cyan transition-all duration-300">
                   <CardContent className="p-4">
@@ -155,13 +155,13 @@ export default function ManagerDashboard() {
                       </div>
 
                       <div className="flex items-center gap-3 shrink-0">
-                        {r.final_grade ? (
+                        {r.final_level ? (
                           <div className="text-right">
-                            <div className={cn("text-lg font-black", gradeInfo?.color)}>
-                              {r.final_grade}/5
+                            <div className={cn("text-lg font-black", levelInfo?.color)}>
+                              {r.final_level}/5
                             </div>
                             <div className="text-[9px] font-bold text-muted-foreground">
-                              {gradeInfo?.label || r.grade_name}
+                              {levelInfo?.label || r.level_name}
                             </div>
                           </div>
                         ) : (

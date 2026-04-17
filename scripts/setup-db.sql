@@ -131,8 +131,8 @@ CREATE TABLE IF NOT EXISTS assessment_results (
   stage1_result_id          UUID REFERENCES stage1_results(id) ON DELETE SET NULL,
   stage2_result_id          UUID REFERENCES stage2_results(id) ON DELETE SET NULL,
   stage3_result_id          UUID REFERENCES stage3_results(id) ON DELETE SET NULL,
-  final_grade               INTEGER CHECK (final_grade BETWEEN 1 AND 5),
-  grade_name                TEXT,
+  final_level               INTEGER CHECK (final_level BETWEEN 1 AND 5),
+  level_name                TEXT,
   is_champion               BOOLEAN DEFAULT false,
   needs_training            BOOLEAN DEFAULT false,
   validated_hours_per_month NUMERIC(6,1),
@@ -190,7 +190,7 @@ BEGIN
   INSERT INTO assessment_results (
     user_id, company_id,
     stage1_result_id, stage2_result_id, stage3_result_id,
-    final_grade, grade_name, is_champion, needs_training,
+    final_level, level_name, is_champion, needs_training,
     validated_hours_per_month, updated_at
   ) VALUES (
     NEW.user_id, NEW.company_id,
@@ -200,8 +200,8 @@ BEGIN
   )
   ON CONFLICT (user_id) DO UPDATE SET
     stage3_result_id          = EXCLUDED.stage3_result_id,
-    final_grade               = EXCLUDED.final_grade,
-    grade_name                = EXCLUDED.grade_name,
+    final_level               = EXCLUDED.final_level,
+    level_name                = EXCLUDED.level_name,
     is_champion               = EXCLUDED.is_champion,
     needs_training            = EXCLUDED.needs_training,
     validated_hours_per_month = EXCLUDED.validated_hours_per_month,
