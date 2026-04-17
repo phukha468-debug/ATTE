@@ -124,23 +124,22 @@ export default async function handler(req: Request): Promise<Response> {
       effectiveCompanyId = userProfile?.company_id || null
     }
 
-    // ── Step 4: Save to test_results as Stage 2 ──
+    // ── Step 4: Save to stage2_results ──
     try {
-      console.log('[judge] Attempting to save result for user:', effectiveUserId)
+      console.log('[judge] Saving stage2 result for user:', effectiveUserId)
       const { data: insertData, error: insertError } = await supabase
-        .from('test_results')
+        .from('stage2_results')
         .insert({
           user_id: effectiveUserId,
           company_id: effectiveCompanyId,
-          type: 'stage2',
-          answers: chatHistory,
-          llm_feedback: {
-            score: llmJson.score,
-            feedback: llmJson.feedback,
-            time_saved_multiplier: llmJson.time_saved_multiplier
-          },
-          score: llmJson.score,
-          is_completed: true,
+          profile_id: task?.profileId ?? null,
+          task_id: task?.id ?? null,
+          acceleration_x: llmJson.time_saved_multiplier ?? 1.0,
+          score_total: llmJson.score,
+          score_prompting: llmJson.score,
+          score_iterativeness: llmJson.score,
+          validated_hours_per_month: null,
+          passed: llmJson.score >= 60,
         })
         .select()
 
@@ -149,20 +148,19 @@ export default async function handler(req: Request): Promise<Response> {
           message: insertError.message,
           code: insertError.code,
           details: insertError.details,
-          hint: insertError.hint
         })
-        return new Response(JSON.stringify({ 
-          error: 'Failed to save results to database', 
+        return new Response(JSON.stringify({
+          error: 'Failed to save results to database',
           details: insertError.message,
           code: insertError.code
         }), { status: 500 })
       }
-      console.log('[judge] Result saved successfully:', insertData?.[0]?.id)
+      console.log('[judge] stage2_results saved:', insertData?.[0]?.id)
     } catch (dbErr: any) {
       console.error('[judge] DB operation exception:', dbErr)
-      return new Response(JSON.stringify({ 
-        error: 'Database operation failed', 
-        details: dbErr.message 
+      return new Response(JSON.stringify({
+        error: 'Database operation failed',
+        details: dbErr.message
       }), { status: 500 })
     }
 

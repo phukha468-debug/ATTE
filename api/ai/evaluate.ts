@@ -186,23 +186,17 @@ Return ONLY compressed JSON:
 
     const companyId = userProfile?.company_id || null
 
-    // ── Step 8: Save to test_results ──
-    const { error: insertError } = await supabase.from('test_results').insert({
+    // ── Step 8: Save to stage1_results ──
+    const { error: insertError } = await supabase.from('stage1_results').insert({
       user_id: userId,
       company_id: companyId,
-      answers,
-      llm_feedback: {
-        score: llmJson.score,
-        feedback: llmJson.feedback,
-        category_scores: llmJson.category_scores || {},
-      },
-      score: llmJson.score,
-      is_completed: true,
+      total_score: llmJson.score,
+      passed: llmJson.score >= 60,
     })
 
     if (insertError) {
       console.error('[evaluate] DB insert error:', insertError)
-      return new Response(JSON.stringify({ error: 'Failed to save results' }), { status: 500 })
+      return new Response(JSON.stringify({ error: 'Failed to save results', _code: insertError.code, _detail: insertError.message }), { status: 500 })
     }
 
     // ── Step 9: Return result ──
