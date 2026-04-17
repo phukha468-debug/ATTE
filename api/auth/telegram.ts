@@ -101,9 +101,14 @@ async function authUser(
     .eq(profiles.tg_id, tgId)
     .single()
 
+  // PGRST116 = "no rows" (new user) — that's fine. Anything else is a real DB error.
   if (selectError && selectError.code !== 'PGRST116') {
-    console.error('[auth] ✗ profiles.select error:', selectError)
-    return res.status(500).json({ error: 'Database error' })
+    console.error('[auth] ✗ profiles.select error:', JSON.stringify(selectError))
+    return res.status(500).json({
+      error: 'Database error',
+      _code: selectError.code,
+      _hint: selectError.hint || selectError.message,
+    })
   }
 
   let companyId: string | null = null
