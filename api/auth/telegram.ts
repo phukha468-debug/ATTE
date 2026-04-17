@@ -15,7 +15,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
-import { createHmac } from 'crypto'
+import { createHmac, randomUUID } from 'crypto'
 
 export const config = { runtime: 'nodejs' }
 
@@ -83,11 +83,12 @@ async function createCompanyAndProfile(
   const { data: newCompany, error: companyError } = await supabase
     .from(companies.table)
     .insert({
+      id: randomUUID(),
       [companies.name]: `${fullName}'s Workspace`,
       industry: 'other',
       size_total: 1,
       size_office: 1,
-      tariff: 'free',
+      tariff: 'premium',
       hourly_rate: 1000,
     })
     .select('id')
@@ -95,7 +96,7 @@ async function createCompanyAndProfile(
 
   if (companyError || !newCompany) {
     console.error('[auth] ✗ companies.insert error:', companyError)
-    return { error: 'Failed to create company', _code: companyError?.code }
+    return { error: `Failed to create company: ${companyError?.code} ${companyError?.message}`, _code: companyError?.code }
   }
 
   const companyId = newCompany.id
