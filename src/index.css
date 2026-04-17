@@ -7,10 +7,10 @@
 /* ─── Custom Shadow Utilities ─────────────────────────────────────────── */
 
 @utility shadow-neumorphic {
-  box-shadow: 6px 6px 14px rgba(0, 0, 0, 0.10), -6px -6px 14px rgba(255, 255, 255, 0.78);
+  box-shadow: 6px 6px 14px #c8c3bc, -6px -6px 14px #fdf9f4;
 }
 @utility shadow-neumorphic-pressed {
-  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.10), inset -4px -4px 8px rgba(255, 255, 255, 0.78);
+  box-shadow: inset 4px 4px 8px #c8c3bc, inset -4px -4px 8px #fdf9f4;
 }
 @utility shadow-neon-cyan {
   box-shadow: 0 0 0 1px rgba(0, 209, 245, 0.50), 0 0 20px rgba(0, 209, 245, 0.12);

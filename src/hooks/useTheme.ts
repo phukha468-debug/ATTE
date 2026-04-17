@@ -11,6 +11,12 @@ export function useTheme() {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
     localStorage.setItem('66ai-theme', theme)
+    const tg = (window as any).Telegram?.WebApp
+    if (tg) {
+      const bgColor = theme === 'dark' ? '#0D1520' : '#EAE5DE'
+      try { tg.setHeaderColor(bgColor) } catch {}
+      try { tg.setBackgroundColor(bgColor) } catch {}
+    }
   }, [theme])
 
   const toggle = useCallback(() => setTheme(t => t === 'light' ? 'dark' : 'light'), [])
