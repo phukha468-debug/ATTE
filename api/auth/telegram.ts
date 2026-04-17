@@ -245,7 +245,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     const supabase = createClient<any, 'public', any>(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-      global: { headers: { Connection: 'close' } },
+      global: {
+        headers: {
+          apikey: serviceRoleKey,
+          Authorization: `Bearer ${serviceRoleKey}`,
+        },
+      },
     })
 
     // DEV MODE (blocked in production)
