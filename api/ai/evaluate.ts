@@ -179,7 +179,7 @@ Return ONLY compressed JSON:
 
     // ── Step 7: Fetch user's company_id ──
     const { data: userProfile } = await supabase
-      .from('users')
+      .from('profiles')
       .select('company_id')
       .eq('id', userId)
       .single()

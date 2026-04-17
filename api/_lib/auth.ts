@@ -37,10 +37,8 @@ export async function verifyManagerAuth(req: Request): Promise<ManagerAuthContex
     return null
   }
 
-  // Теперь проверяем роль в таблице users (или profiles)
-  // В нашем проекте основная таблица пользователей — 'users'
   const { data: profile, error: profileError } = await supabase
-    .from('users')
+    .from('profiles')
     .select('id, company_id, role')
     .eq('id', user.id)
     .single()

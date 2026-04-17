@@ -117,7 +117,7 @@ export default async function handler(req: Request): Promise<Response> {
 
     if (!effectiveCompanyId) {
       const { data: userProfile } = await supabase
-        .from('users')
+        .from('profiles')
         .select('company_id')
         .eq('id', effectiveUserId)
         .single()

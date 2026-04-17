@@ -18,8 +18,8 @@ export const config = { runtime: 'nodejs' }
 // ─── DB Schema (Law of Truth — synced with BRIEF.md) ────────────────────────
 
 const DB_SCHEMA = {
-  users: {
-    table: 'users',
+  profiles: {
+    table: 'profiles',
     tg_id: 'tg_id',
     full_name: 'full_name',
     company_id: 'company_id',
@@ -87,22 +87,22 @@ async function authUser(
   botToken: string,
   res: VercelResponse,
 ): Promise<VercelResponse | void> {
-  const { users, companies } = DB_SCHEMA
+  const { profiles, companies } = DB_SCHEMA
   console.log(`[auth] → authUser called: tgId=${tgId}, fullName="${fullName}"`)
 
   const email = `tg_${tgId}@atte.local`
   const password = getUserPassword(tgId, botToken)
 
-  // Step 1: Check if profile exists
-  console.log('[auth] Step 1: Checking if profile exists in users table...')
+  // Step 1: Check if profile exists in profiles table
+  console.log('[auth] Step 1: Checking if profile exists in profiles table...')
   const { data: existingUser, error: selectError } = await supabase
-    .from(users.table)
+    .from(profiles.table)
     .select('id, company_id')
-    .eq(users.tg_id, tgId)
+    .eq(profiles.tg_id, tgId)
     .single()
 
   if (selectError && selectError.code !== 'PGRST116') {
-    console.error('[auth] ✗ users.select error:', selectError)
+    console.error('[auth] ✗ profiles.select error:', selectError)
     return res.status(500).json({ error: 'Database error' })
   }
 
@@ -114,7 +114,7 @@ async function authUser(
   } else {
     console.log('[auth] ✗ Profile not found, creating new company...')
 
-    // Step 2: Create default company
+    // Step 2: Create default company (profiles.company_id is NOT NULL — must create first)
     console.log('[auth] Step 2: Inserting into companies table...')
     const { data: newCompany, error: companyError } = await supabase
       .from(companies.table)
@@ -150,31 +150,44 @@ async function authUser(
 
     if (createErr && createErr.code !== 'user_already_exists') {
       console.error('[auth] ✗ createUser error:', createErr)
+      // Orphan cleanup: company was created but auth failed — log for manual review
+      console.error(`[auth] ⚠ Orphan company created: id=${companyId}. Auth user creation failed.`)
       return res.status(500).json({ error: createErr.message })
     }
 
-    if (createErr?.code === 'user_already_exists') {
-      console.log('[auth] ⚠ User already exists in auth, skipping create')
+    // Resolve userId: from createUser response OR via sign-in if user already existed in auth
+    let userId: string | undefined
+    if (!createErr) {
+      userId = authData?.user?.id
+      console.log(`[auth] ✓ Auth user created: id=${userId}`)
     } else {
-      console.log(`[auth] ✓ Auth user created: id=${authData?.user?.id}`)
+      // user_already_exists — auth user exists but profile is missing (partial registration)
+      // Resolve ID by signing in with the deterministic password
+      console.log('[auth] ⚠ User already exists in auth, resolving ID via sign-in...')
+      const { data: tempSession, error: tempSignInErr } = await supabase.auth.signInWithPassword({ email, password })
+      userId = tempSession?.user?.id
+      if (!userId) {
+        console.error('[auth] ✗ Cannot resolve userId for orphaned auth user:', tempSignInErr)
+      } else {
+        console.log(`[auth] ✓ Resolved existing auth user id=${userId}`)
+      }
     }
 
-    const userId = authData?.user?.id
-
     if (userId) {
-      console.log('[auth] Step 3b: Profile data', { userId, tgId, fullName, companyId })
-      const { error: profileError } = await supabase.from(users.table).insert({
+      console.log('[auth] Step 3b: Inserting into profiles table', { userId, tgId, fullName, companyId })
+      const { error: profileError } = await supabase.from(profiles.table).insert({
         id: userId,
-        [users.tg_id]: tgId,
-        [users.full_name]: fullName,
-        [users.role]: 'employee',
-        [users.company_id]: companyId,
+        [profiles.tg_id]: tgId,
+        [profiles.full_name]: fullName,
+        [profiles.role]: 'employee',
+        [profiles.company_id]: companyId,
       })
 
       if (profileError) {
-        console.error('[auth] ✗ users.insert error:', profileError)
+        console.error('[auth] ✗ profiles.insert error:', profileError)
+        return res.status(500).json({ error: `Failed to create profile: ${profileError.message}` })
       } else {
-        console.log('[auth] ✓ User profile inserted')
+        console.log('[auth] ✓ Profile inserted into profiles table')
       }
     }
   }

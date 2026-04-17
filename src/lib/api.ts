@@ -82,7 +82,7 @@ export interface TestResult {
   score: number | null
   is_completed: boolean
   created_at: string
-  users: {
+  profiles: {
     full_name: string
     role: string
   } | null
@@ -95,7 +95,7 @@ export interface TestResult {
 export const fetchCompanyResults = async (): Promise<TestResult[]> => {
   const { data, error } = await supabase
     .from('test_results')
-    .select('*, users(full_name, role)')
+    .select('*, profiles(full_name, role)')
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -145,7 +145,7 @@ export const fetchCurrentUserProfile = async () => {
   if (!user) return null
 
   const { data, error } = await supabase
-    .from('users')
+    .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single()
@@ -261,7 +261,7 @@ export const approveStage3Result = async (resultId: string): Promise<void> => {
 export const fetchAllCompanyResults = async (): Promise<TestResult[]> => {
   const { data, error } = await supabase
     .from('test_results')
-    .select('*, users(full_name, role)')
+    .select('*, profiles(full_name, role)')
     .order('created_at', { ascending: false })
 
   if (error) {

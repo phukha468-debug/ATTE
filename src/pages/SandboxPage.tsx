@@ -103,7 +103,7 @@ export default function SandboxPage() {
       // Get user profile to pass IDs explicitly as requested
       const { data: { user } } = await supabase.auth.getUser();
       const { data: profile } = await supabase
-        .from('users')
+        .from('profiles')
         .select('company_id')
         .eq('id', user?.id)
         .single();

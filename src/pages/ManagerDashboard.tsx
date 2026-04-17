@@ -79,8 +79,8 @@ export default function ManagerDashboard() {
     const uid = r.user_id;
     if (!userMap[uid]) {
       userMap[uid] = { 
-        name: r.users?.full_name || 'Аноним', 
-        role: r.users?.role || 'Сотрудник' 
+        name: r.profiles?.full_name || 'Аноним',
+        role: r.profiles?.role || 'Сотрудник'
       };
     }
     if (r.type === 'stage1' || !r.type) userMap[uid].s1 = r;
