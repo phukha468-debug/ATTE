@@ -35,7 +35,7 @@
 ### `stage1_results`
 | Операция | Файл | Поля | Статус |
 |----------|------|------|--------|
-| INSERT | `api/ai/evaluate.ts:190` | ❌ пишет в `test_results` | 🔴 РАСХОЖДЕНИЕ |
+| INSERT | `api/ai/evaluate.ts:190` | `user_id, company_id, total_score, passed` | ✅ OK |
 | SELECT | `src/lib/api.ts:40` | `*` | ✅ OK |
 
 **Ожидаемые поля при INSERT:** `id, user_id, company_id, total_score, passed, created_at`
@@ -43,7 +43,7 @@
 ### `stage2_results`
 | Операция | Файл | Поля | Статус |
 |----------|------|------|--------|
-| INSERT | `api/ai/judge.ts:131` | ❌ пишет в `test_results` | 🔴 РАСХОЖДЕНИЕ |
+| INSERT | `api/ai/judge.ts:131` | `user_id, company_id, profile_id, task_id, acceleration_x, score_total, score_prompting, score_iterativeness, validated_hours_per_month, passed` | ✅ OK |
 | SELECT | `src/lib/api.ts:73` | `*` | ✅ OK |
 
 **Ожидаемые поля при INSERT:** `id, user_id, company_id, profile_id, task_id, acceleration_x, score_total, score_prompting, score_iterativeness, validated_hours_per_month, passed`
@@ -69,22 +69,14 @@
 | INSERT | — | ❌ нигде не пишется из кода | 🟡 НЕ РЕАЛИЗОВАНО |
 | SELECT | — | ❌ нигде не читается | 🟡 НЕ РЕАЛИЗОВАНО |
 
-### `test_results` (УДАЛЕНА)
-| Операция | Файл | Поля | Статус |
-|----------|------|------|--------|
-| INSERT | `api/ai/evaluate.ts:190` | `user_id, company_id, answers, llm_feedback, score, is_completed` | 🔴 ТАБЛИЦА УДАЛЕНА |
-| INSERT | `api/ai/judge.ts:131` | `user_id, company_id, type, answers, llm_feedback, score, is_completed` | 🔴 ТАБЛИЦА УДАЛЕНА |
-
 ---
 
 ## Критические расхождения (нужно исправить)
 
 | # | Проблема | Файл | Действие |
 |---|----------|------|---------|
-| 1 | `evaluate.ts` пишет в `test_results` вместо `stage1_results` | `api/ai/evaluate.ts` | Переписать INSERT |
-| 2 | `judge.ts` пишет в `test_results` вместо `stage2_results` | `api/ai/judge.ts` | Переписать INSERT |
-| 3 | `assessment_results` никогда не заполняется из кода | БД / backend | Создать триггер или функцию |
-| 4 | `routine_map_items` не используется в коде | `src/pages/Tests.tsx` | Реализовать сохранение карты рутины |
+| 1 | `assessment_results` никогда не заполняется из кода | БД / backend | Создать триггер или функцию |
+| 2 | `routine_map_items` не используется в коде | `src/pages/Tests.tsx` | Реализовать сохранение карты рутины |
 
 ---
 

@@ -120,12 +120,20 @@ export default async function handler(req: Request): Promise<Response> {
 
     const totalMaxScore = questions.reduce((sum, q) => sum + (q.max_score || 4), 0)
 
-    const systemPrompt = `HR-expert. Grade employee responses. Rules:
-1. MCQ: match = full score, mismatch = 0.
-2. Open: grade detail and relevance.
-3. Final score = round(earned/max*100).
-4. Feedback: 3 sentences in Russian (strengths, growth, advice).
-Return ONLY compressed JSON:
+    const systemPrompt = `You are a strict HR examiner grading an AI-literacy test. Be brutally honest.
+
+SCORING RULES:
+1. MCQ: correct answer = full score, wrong answer = 0. No partial credit.
+2. Open questions: grade ONLY on factual accuracy and relevance to the rubric.
+   - Random characters, single letters, gibberish, or blank = 0 points.
+   - Vague or off-topic answer = 0–20% of max.
+   - Partially correct = 20–70% of max.
+   - Fully correct and detailed = 70–100% of max.
+3. If the majority of answers are nonsensical or clearly random, final score MUST be under 10.
+4. Final score = round(total_earned / total_max * 100). Do NOT inflate.
+5. Feedback: 2 sentences in Russian. Be direct. If answers are bad, say so explicitly. Do NOT invent strengths that don't exist.
+
+Return ONLY this JSON (no markdown, no extra text):
 {"score":0-100,"feedback":"str","category_scores":{"routine":0,"prompting":0,"limitations":0,"legal":0}}`
 
     const userPrompt = `Ответы сотрудника:${userAnswersBlock}`
