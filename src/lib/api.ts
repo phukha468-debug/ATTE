@@ -199,6 +199,14 @@ export const approveStage3Result = async (resultId: string): Promise<void> => {
   if (error) throw new Error(`Failed to approve Stage 3 result: ${error.message}`)
 }
 
+// ─── Evaluation result (returned by /api/ai/evaluate) ────────────────────────
+
+export interface EvaluationResult {
+  score: number
+  feedback: string
+  category_scores: Record<string, number>
+}
+
 // ─── Legacy aliases for backward compatibility ────────────────────────────────
 
 export type TestResult = AssessmentResult

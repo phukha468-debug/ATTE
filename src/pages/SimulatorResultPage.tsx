@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Trophy, Star, TrendingUp, Sparkles, Home } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
+import { useAppStore } from '@/store/appStore';
 
 interface JudgeResult {
   score: number;
@@ -16,6 +17,11 @@ export default function SimulatorResultPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const result = location.state as JudgeResult;
+  const { userId, loadAppData } = useAppStore();
+
+  useEffect(() => {
+    if (userId) loadAppData(userId, true);
+  }, []);
 
   if (!result) {
     return (
