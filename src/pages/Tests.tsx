@@ -58,7 +58,7 @@ export default function Tests() {
   const [evalError, setEvalError] = useState<string | null>(null)
   
   const testStore = useTestStore()
-  const { latestResult: s1, simulatorResult: s2, isLoading: loadingAppData } = useAppStore()
+  const { latestResult: s1, simulatorResult: s2, isLoading: loadingAppData, userId, loadAppData } = useAppStore()
 
   useEffect(() => {
     async function loadQuestions() {
@@ -98,10 +98,10 @@ export default function Tests() {
     let score = '—'
 
     if (stage.id === 1) {
-      score = s1 ? `${s1.score}%` : '—'
+      score = s1 ? `${s1.total_score}%` : '—'
     } else if (stage.id === 2) {
       status = s1 ? 'active' : 'locked'
-      score = s2 ? `${s2.score}%` : '—'
+      score = s2 ? `${s2.score_total}%` : '—'
     } else if (stage.id === 3) {
       status = s2 ? 'active' : 'locked'
     }
@@ -117,6 +117,8 @@ export default function Tests() {
       const result = await submitTestResults(answers)
       console.log('✅ Evaluation result:', result)
       setEvalResult(result)
+      // Refresh store so Reports page sees the new result immediately
+      if (userId) await loadAppData(userId, true)
     } catch (err: any) {
       console.error('❌ Evaluation error:', err)
       setEvalError(err.message || 'Ошибка оценки. Попробуйте позже.')
