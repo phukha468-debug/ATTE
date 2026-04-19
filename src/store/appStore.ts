@@ -19,10 +19,14 @@ interface AppState {
   isLoading: boolean
   isLoaded: boolean
   error: string | null
+  isNewUser: boolean
+  viewMode: 'manager' | 'employee'
 
   // Actions
   loadAppData: (userId: string, force?: boolean) => Promise<void>
   clearAppData: () => void
+  setIsNewUser: (value: boolean) => void
+  toggleViewMode: () => void
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -31,9 +35,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   latestResult: null,
   simulatorResult: null,
   stage3Result: null,
-  isLoading: true, // Start with true to show skeletons while App is initializing
+  isLoading: true,
   isLoaded: false,
   error: null,
+  isNewUser: false,
+  viewMode: 'manager',
 
   loadAppData: async (userId: string, force = false) => {
     // If user changed, clear old data first
@@ -70,19 +76,23 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   clearAppData: () => {
     console.log('[store] Clearing all app data...')
-    
-    // Reset test store too
     useTestStore.getState().resetTest()
-    
-    set({ 
+    set({
       userId: null,
-      userProfile: null, 
-      latestResult: null, 
-      simulatorResult: null, 
+      userProfile: null,
+      latestResult: null,
+      simulatorResult: null,
       stage3Result: null,
       isLoaded: false,
       isLoading: false,
-      error: null
+      error: null,
+      isNewUser: false,
+      viewMode: 'manager',
     })
-  }
+  },
+
+  setIsNewUser: (value) => set({ isNewUser: value }),
+
+  toggleViewMode: () =>
+    set((state) => ({ viewMode: state.viewMode === 'manager' ? 'employee' : 'manager' })),
 }))

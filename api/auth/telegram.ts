@@ -77,6 +77,7 @@ async function createCompanyAndProfile(
   supabase: any,
   userId: string,
   fullName: string,
+  role: 'manager' | 'employee' = 'employee',
 ): Promise<{ companyId: string } | { error: string; _code?: string }> {
   const { profiles, companies } = DB_SCHEMA
 
@@ -105,7 +106,7 @@ async function createCompanyAndProfile(
   const { error: profileError } = await supabase.from(profiles.table).insert({
     id: userId,
     [profiles.full_name]: fullName,
-    [profiles.role]: 'employee',
+    [profiles.role]: role,
     [profiles.company_id]: companyId,
   })
 
@@ -166,7 +167,7 @@ async function authUser(
 
     // Auth user exists but profile is missing (partial registration) — repair it
     console.log('[auth] ⚠ Profile missing for existing auth user, creating...')
-    const result = await createCompanyAndProfile(supabase, userId, fullName)
+    const result = await createCompanyAndProfile(supabase, userId, fullName, 'manager')
     if ('error' in result) {
       return res.status(500).json(result)
     }
@@ -196,8 +197,8 @@ async function authUser(
   const userId = authData.user.id
   console.log(`[auth] ✓ Auth user created: id=${userId}`)
 
-  // Create company + profile
-  const result = await createCompanyAndProfile(supabase, userId, fullName)
+  // Create company + profile — first user always gets manager role
+  const result = await createCompanyAndProfile(supabase, userId, fullName, 'manager')
   if ('error' in result) {
     return res.status(500).json(result)
   }

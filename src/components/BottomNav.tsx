@@ -20,10 +20,11 @@ const managerNavItems = [
 ];
 
 export function BottomNav() {
-  const { userProfile } = useAppStore();
+  const { userProfile, viewMode } = useAppStore();
   const role = userProfile?.role;
+  const isManagerView = (role === 'manager' || role === 'admin') && viewMode === 'manager';
 
-  const navItems = role === 'manager' || role === 'admin' ? managerNavItems : employeeNavItems;
+  const navItems = isManagerView ? managerNavItems : employeeNavItems;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background/85 dark:bg-background/90 backdrop-blur-lg border-t border-border dark:border-accent/15 px-4 py-2 pb-safe z-50 transition-colors duration-300">

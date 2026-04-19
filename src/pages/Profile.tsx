@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Settings, Bell, Shield, LogOut, ChevronRight, Moon, Sun } from 'lucide-react';
+import { Settings, Bell, Shield, LogOut, ChevronRight, Moon, Sun, ArrowLeftRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/appStore';
 import { useTheme } from '@/hooks/useTheme';
@@ -16,8 +16,10 @@ const menuItems = [
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { userProfile, isLoading, clearAppData } = useAppStore();
+  const { userProfile, isLoading, clearAppData, viewMode, toggleViewMode } = useAppStore();
   const { isDark, toggle } = useTheme();
+
+  const isManager = userProfile?.role === 'manager' || userProfile?.role === 'admin';
 
   const fullName  = userProfile?.full_name || 'Пользователь';
   const jobTitle  = userProfile?.job_title || 'Сотрудник';
@@ -97,6 +99,24 @@ export default function Profile() {
           ))}
         </CardContent>
       </Card>
+
+      {/* ── Переключатель режима (только для менеджера) ── */}
+      {isManager && (
+        <div
+          className="flex items-center justify-between px-4 py-3 rounded-xl border border-primary/20 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors"
+          onClick={toggleViewMode}
+        >
+          <div className="flex items-center gap-3">
+            <div className="bg-primary/15 p-1.5 rounded-lg">
+              <ArrowLeftRight className="w-4 h-4 text-primary" />
+            </div>
+            <span className="text-sm font-medium">Переключить</span>
+          </div>
+          <span className="text-xs font-bold text-primary px-2 py-0.5 rounded-full bg-primary/10">
+            {viewMode === 'manager' ? 'Режим: Менеджер' : 'Режим: Сотрудник'}
+          </span>
+        </div>
+      )}
 
       {/* ── Выход ── */}
       <Button

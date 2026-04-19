@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { BottomNav } from './BottomNav';
+import { CompanySetup } from './CompanySetup';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { loginWithTelegram } from '@/lib/auth';
@@ -50,7 +51,7 @@ function ErrorScreen({ message }: { message: string }) {
 export function Layout() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { loadAppData, clearAppData, userProfile } = useAppStore()
+  const { loadAppData, clearAppData, userProfile, setIsNewUser, viewMode } = useAppStore()
   const [authState, setAuthState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState('');
   const { isDark, toggle } = useTheme();
@@ -96,8 +97,9 @@ export function Layout() {
 
         if (!session) {
           console.log('[auth-debug] 2b. No session — calling loginWithTelegram...')
-          await loginWithTelegram()
+          const authResult = await loginWithTelegram()
           console.log('[auth-debug] 2c. loginWithTelegram completed, fetching new session...')
+          if (authResult.is_new_user) setIsNewUser(true)
           const { data: { session: newSession } } = await supabase.auth.getSession()
           session = newSession
         }
@@ -114,13 +116,14 @@ export function Layout() {
         console.log('[auth-debug] 3b. Profile loaded:', profile ? `role=${profile.role}` : 'null')
 
         if (profile) {
-          // Role-based routing logic
-          const isManager = profile.role === 'manager' || profile.role === 'admin'
+          const isManagerRole = profile.role === 'manager' || profile.role === 'admin'
+          const currentViewMode = useAppStore.getState().viewMode
+          const isManagerView = isManagerRole && currentViewMode === 'manager'
           const path = location.pathname
 
-          if (isManager && path === '/') {
+          if (isManagerView && path === '/') {
             navigate('/dashboard', { replace: true })
-          } else if (!isManager && path === '/dashboard') {
+          } else if (!isManagerView && path === '/dashboard') {
             navigate('/tests', { replace: true })
           }
         }
@@ -143,8 +146,10 @@ export function Layout() {
     }
   }, [loadAppData, clearAppData, navigate, location.pathname]);
 
-  const userRole = userProfile?.role || ''
+  const isManagerRole = userProfile?.role === 'manager' || userProfile?.role === 'admin'
+  const isManagerView = isManagerRole && viewMode === 'manager'
   const isNoNavPage = location.pathname.startsWith('/sandbox/') || location.pathname === '/simulator/result'
+  const { isNewUser } = useAppStore()
 
   if (authState === 'loading') {
     return <SplashScreen />;
@@ -158,7 +163,8 @@ export function Layout() {
     <div className={cn(
       "min-h-screen bg-background text-foreground overflow-x-hidden transition-colors duration-300",
       !isNoNavPage && "pb-24"
-    )} data-role={userRole || ''}>
+    )} data-role={isManagerView ? 'manager' : 'employee'}>
+      {isNewUser && <CompanySetup />}
       {!isNoNavPage && (
         <button
           onClick={toggle}
